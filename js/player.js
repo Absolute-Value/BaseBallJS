@@ -1,8 +1,9 @@
 class Player {
-    constructor(init_x, init_y, radius=6) {
+    constructor(init_x, init_y, radius=6, color='red') {
         this.init_x = init_x;
         this.init_y = init_y;
         this.radius = radius;
+        this.color = color;
         this.reset();
     }
 
@@ -20,16 +21,16 @@ class Player {
         this.dy = 0;
     }
 
-    draw(color = 'red') {
+    draw() {
         noStroke();
-        fill(color);
+        fill(this.color);
         ellipse(this.x, this.y, this.radius*2, this.radius*2);
     }
 }
 
 class Batter extends Player {
-    constructor(init_x, init_y, radius=6) {
-        super(init_x, init_y, radius);
+    constructor(init_x, init_y, radius=6, color='blue') {
+        super(init_x, init_y, radius, color);
         this.bat_width = 6 // バットの幅
         this.bat_length = 28 // バットの長さ
         this.init_angle = 120 // バットの初期角度
@@ -62,14 +63,14 @@ class Batter extends Player {
         this.dy = 0;
     }
 
-    draw(color='blue') {
+    draw() {
         // 薄茶色のバットを描画
         var bat_x = this.x + Math.cos(this.angle*(Math.PI/180)) * this.bat_length;
         var bat_y = this.y + Math.sin(this.angle*(Math.PI/180)) * this.bat_length;
         stroke(222, 184, 135);
         strokeWeight(8);
         line(this.x, this.y, bat_x, bat_y);
-        super.draw(color);
+        super.draw();
     }
 }
 
