@@ -10,15 +10,15 @@ class Player {
     reset() {
         this.x = this.init_x;
         this.y = this.init_y;
-        this.dx = 0;
-        this.dy = 0;
+        this.vx = 0;
+        this.vy = 0;
     }
 
     move() {
-        this.x += this.dx;
-        this.y += this.dy;
-        this.dx = 0;
-        this.dy = 0;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx = 0;
+        this.vy = 0;
     }
 
     draw() {
@@ -62,10 +62,10 @@ class Batter extends Player {
     }
 
     move() {
-        this.x += this.dx;
-        this.y += this.dy;
-        this.dx = 0;
-        this.dy = 0;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx = 0;
+        this.vy = 0;
     }
 
     draw() {
@@ -96,7 +96,7 @@ class Catcher extends Fielder {
                 ball.alive = false;
                 fielders.reset();
             } else {
-                this.x += ball.dx;
+                this.x += ball.vx;
             }
         }
     }
