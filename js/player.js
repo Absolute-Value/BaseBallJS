@@ -35,6 +35,7 @@ class Batter extends Player {
         this.bat_length = 28 // バットの長さ
         this.init_angle = 120 // バットの初期角度
         this.swing_speed = 15 // バットの振り速度
+        this.swing_count = 0;
         this.reset();
     }
 
@@ -46,11 +47,15 @@ class Batter extends Player {
 
     swing() {
         if (this.angle > -135 && this.angle < 135) {
+            this.swing_count += 1;
             this.angle -= this.swing_speed;
+        } else {
+            this.swing_count = 0;
         }
     }
 
     swing_back() {
+        this.swing_count = 0;
         if (this.angle <= -135 || this.angle >= 135) {
             this.angle = this.init_angle;
         }
@@ -65,11 +70,11 @@ class Batter extends Player {
 
     draw() {
         // 薄茶色のバットを描画
-        var bat_x = this.x + Math.cos(this.angle*(Math.PI/180)) * this.bat_length;
-        var bat_y = this.y + Math.sin(this.angle*(Math.PI/180)) * this.bat_length;
+        this.bat_x = this.x + Math.cos(this.angle*(Math.PI/180)) * this.bat_length;
+        this.bat_y = this.y + Math.sin(this.angle*(Math.PI/180)) * this.bat_length;
         stroke(222, 184, 135);
         strokeWeight(8);
-        line(this.x, this.y, bat_x, bat_y);
+        line(this.x, this.y, this.bat_x,this.bat_y);
         super.draw();
     }
 }
