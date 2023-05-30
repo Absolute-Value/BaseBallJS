@@ -7,7 +7,7 @@ function setup() {
     createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
     field_ = new Field();
     batter = new Batter(field_.bases.base_home.x - 24, field_.bases.base_home.y - 8);
-    ball = new Ball(400, 300);
+    ball = new Ball(CANVAS_WIDTH/2, CANVAS_HEIGHT/2);
 
     frameRate(60);
 }
@@ -37,6 +37,7 @@ function draw() {
     }
 
     batter.move(); // バッターを移動
+    ball.move(); // ボールを移動
 
     field_.draw(); // フィールドを描画
     batter.draw(); // バッターを描画
@@ -44,18 +45,18 @@ function draw() {
 }
 
 class Base {
-    constructor(x, y, r=8) {
+    constructor(x, y, radius=8) {
         this.x = x;
         this.y = y;
-        this.r = r;
+        this.radius = radius;
     }
 
     draw() {
         noStroke();
         fill(255, 255, 255);
-        quad(this.x-this.r, this.y-this.r, 
-            this.x, this.y-this.r*2, 
-            this.x+this.r, this.y-this.r, 
+        quad(this.x-this.radius, this.y-this.radius, 
+            this.x, this.y-this.radius*2, 
+            this.x+this.radius, this.y-this.radius, 
             this.x, this.y);
     }
 }
@@ -64,10 +65,10 @@ class HomeBase extends Base {
     draw() {
         noStroke();
         fill(255, 255, 255);
-        rect(this.x-this.r, this.y-this.r*2, this.r*2, this.r);
-        triangle(this.x-this.r, this.y-this.r, 
+        rect(this.x-this.radius, this.y-this.radius*2, this.radius*2, this.radius);
+        triangle(this.x-this.radius, this.y-this.radius, 
             this.x, this.y, 
-            this.x+this.r, this.y-this.r);
+            this.x+this.radius, this.y-this.radius);
     }
 }
 
@@ -95,10 +96,10 @@ class Field {
 }
 
 class Player {
-    constructor(init_x, init_y, r=12) {
+    constructor(init_x, init_y, radius=12) {
         this.init_x = init_x;
         this.init_y = init_y;
-        this.r = r;
+        this.radius = radius;
         this.reset();
     }
 
@@ -119,7 +120,7 @@ class Player {
     draw() {
         noStroke();
         fill(0, 0, 255);
-        ellipse(this.x, this.y, this.r, this.r);
+        ellipse(this.x, this.y, this.radius, this.radius);
     }
 }
 
@@ -169,14 +170,30 @@ class Batter extends Player {
 }
 
 class Ball {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.r = 8;
+    constructor(init_x, init_y, radius=8) {
+        this.init_x = init_x;
+        this.init_y = init_y;
+        this.radius = radius;
+        this.reset();
     }
+
+    reset() {
+        this.x = this.init_x;
+        this.y = this.init_y;
+        this.speed = Math.random() * 3 + 3.5;
+        this.angle = Math.random() * 10 - 5;
+        this.dx = this.speed * Math.sin(this.angle*(Math.PI/180));
+        this.dy = this.speed * Math.cos(this.angle*(Math.PI/180));
+    }
+
+    move() {
+        this.x += this.dx;
+        this.y += this.dy;
+    }
+
     draw() {
         noStroke();
         fill(230, 215, 150);
-        ellipse(this.x, this.y, this.r, this.r);
+        ellipse(this.x, this.y, this.radius, this.radius);
     }
 }
