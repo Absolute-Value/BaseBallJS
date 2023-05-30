@@ -7,7 +7,8 @@ function setup() {
     var canvas = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
     canvas.parent('GameCanvas');
     field_ = new Field();
-    batter = new Batter(field_.bases.base_home.x - 24, field_.bases.base_home.y - 8);
+    batter = new Batter(field_.bases.base_home.x - 24, field_.bases.base_home.y - 8); // バッターを作成
+    fielders = new Fielders(field_); // 野手を作成
     ball = new Ball(CANVAS_WIDTH/2, CANVAS_HEIGHT/2);
 
     frameRate(60);
@@ -38,10 +39,12 @@ function draw() {
     }
 
     batter.move(); // バッターを移動
+    fielders.move(); // 野手を移動
     ball.move(); // ボールを移動
 
     field_.draw(); // フィールドを描画
     batter.draw(); // バッターを描画
+    fielders.draw(); // 野手を描画
     ball.draw(); // ボールを描画
 }
 
@@ -118,16 +121,16 @@ class Player {
         this.dy = 0;
     }
 
-    draw() {
+    draw(color = 'red') {
         noStroke();
-        fill(0, 0, 255);
+        fill(color);
         ellipse(this.x, this.y, this.radius, this.radius);
     }
 }
 
 class Batter extends Player {
-    constructor(init_x, init_y, r=12) {
-        super(init_x, init_y, r);
+    constructor(init_x, init_y, radius=12) {
+        super(init_x, init_y, radius);
         this.bat_width = 6 // バットの幅
         this.bat_length = 28 // バットの長さ
         this.init_angle = 120 // バットの初期角度
@@ -137,6 +140,7 @@ class Batter extends Player {
 
     reset() {
         super.reset();
+        this.is_hit = false;
         this.angle = this.init_angle;
     }
 
@@ -159,14 +163,56 @@ class Batter extends Player {
         this.dy = 0;
     }
 
-    draw() {
+    draw(color='blue') {
         // 薄茶色のバットを描画
         var bat_x = this.x + Math.cos(this.angle*(Math.PI/180)) * this.bat_length;
         var bat_y = this.y + Math.sin(this.angle*(Math.PI/180)) * this.bat_length;
         stroke(180, 100, 50);
         strokeWeight(8);
         line(this.x, this.y, bat_x, bat_y);
-        super.draw();
+        super.draw(color);
+    }
+}
+
+class Fielder extends Player {
+    constructor(init_x, init_y, radius=12) {
+        super(init_x, init_y, radius);
+    }
+}
+
+class Catcher extends Fielder {
+    move() {
+        if (ball.alive && !batter.is_hit) {
+            self.x += ball.dx;
+        }
+    }
+}
+
+class Fielders {
+    constructor(field_) {
+        this.fielders = {
+            catcher: new Catcher(field_.bases.base_home.x, field_.bases.base_home.y + 30), // キャッチャー
+            first: new Fielder(field_.bases.base_first.x, field_.bases.base_first.y - 50), // 一塁手
+            second: new Fielder(field_.bases.base_second.x + 120, field_.bases.base_second.y + 10), // 二塁手
+            short: new Fielder(field_.bases.base_second.x - 120, field_.bases.base_second.y + 10), // 遊撃手
+            third: new Fielder(field_.bases.base_third.x, field_.bases.base_third.y - 50), // 三塁手
+        }
+    }
+
+    get(key) {
+        return this.fielders[key];
+    } 
+
+    move() {
+        for (let key in this.fielders) {
+            this.fielders[key].move();
+        }
+    }
+
+    draw() {
+        for (let key in this.fielders) {
+            this.fielders[key].draw();
+        }
     }
 }
 
@@ -185,6 +231,7 @@ class Ball {
         this.angle = Math.random() * 10 - 5;
         this.dx = this.speed * Math.sin(this.angle*(Math.PI/180));
         this.dy = this.speed * Math.cos(this.angle*(Math.PI/180));
+        this.alive = true;
     }
 
     move() {
