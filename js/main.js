@@ -1,7 +1,6 @@
 // p5jsで野球ゲームを作成する
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
-const HOME_POS = 100
 
 function setup() {
     var canvas = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
