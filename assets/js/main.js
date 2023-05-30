@@ -159,8 +159,8 @@ class Batter extends Player {
 
     draw() {
         // 薄茶色のバットを描画
-        var bat_x = this.x + Math.cos(this.angle) * this.bat_length;
-        var bat_y = this.y + Math.sin(this.angle) * this.bat_length;
+        var bat_x = this.x + Math.cos(this.angle*(Math.PI/180)) * this.bat_length;
+        var bat_y = this.y + Math.sin(this.angle*(Math.PI/180)) * this.bat_length;
         stroke(180, 100, 50);
         strokeWeight(8);
         line(this.x, this.y, bat_x, bat_y);
