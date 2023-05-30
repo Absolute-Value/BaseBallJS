@@ -69,6 +69,11 @@ class Ball {
 
     move() {
         if (this.alive) {
+            if (this.x + this.dx > CANVAS_WIDTH - this.radius || this.x + this.dx < this.radius) {
+                this.dx *= -1;
+            } if (this.y + this.dy > CANVAS_HEIGHT - this.radius || this.y + this.dy < this.radius) {
+                this.dy *= -1;
+            }
             this.x += this.dx;
             this.y += this.dy;
         } else {
