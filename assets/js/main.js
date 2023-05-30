@@ -9,7 +9,7 @@ function setup() {
     field_ = new Field();
     batter = new Batter(field_.items.base_home.x - 24, field_.items.base_home.y - 8); // バッターを作成
     fielders = new Fielders(field_); // 野手を作成
-    ball = new Ball(CANVAS_WIDTH/2, CANVAS_HEIGHT/2);
+    ball = new Ball(fielders.get('pitcher').x, fielders.get('pitcher').y); // ボールを作成
 
     frameRate(60);
 }
@@ -205,6 +205,7 @@ class Catcher extends Fielder {
 class Fielders {
     constructor(field_) {
         this.fielders = {
+            pitcher: new Fielder(field_.items.pitcher_mound.x, field_.items.pitcher_mound.y), // ピッチャー
             catcher: new Catcher(field_.items.base_home.x, field_.items.base_home.y + 30), // キャッチャー
             first: new Fielder(field_.items.base_first.x, field_.items.base_first.y - 50), // 一塁手
             second: new Fielder(field_.items.base_second.x + 120, field_.items.base_second.y + 10), // 二塁手
