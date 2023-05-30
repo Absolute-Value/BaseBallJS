@@ -7,7 +7,7 @@ function setup() {
     var canvas = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
     canvas.parent('GameCanvas');
     field_ = new Field();
-    batter = new Batter(field_.bases.base_home.x - 24, field_.bases.base_home.y - 8); // バッターを作成
+    batter = new Batter(field_.items.base_home.x - 24, field_.items.base_home.y - 8); // バッターを作成
     fielders = new Fielders(field_); // 野手を作成
     ball = new Ball(CANVAS_WIDTH/2, CANVAS_HEIGHT/2);
 
@@ -39,8 +39,8 @@ function draw() {
     }
 
     batter.move(); // バッターを移動
-    fielders.move(); // 野手を移動
     ball.move(); // ボールを移動
+    fielders.move(ball); // 野手を移動
 
     field_.draw(); // フィールドを描画
     batter.draw(); // バッターを描画
@@ -76,9 +76,19 @@ class HomeBase extends Base {
     }
 }
 
+class DirtCircle extends Base {
+    draw() {
+        noStroke();
+        fill(139, 69, 19);
+        ellipse(this.x, this.y, this.radius*2, this.radius*2);
+    }
+}
+
 class Field {
     constructor() {
-        this.bases = {
+        this.items = {
+            pitcher_mound: new DirtCircle(CANVAS_WIDTH / 2, CANVAS_HEIGHT - HOME_POS - 200, 40), // ピッチャーマウンド
+            home_dirt: new DirtCircle(CANVAS_WIDTH / 2, CANVAS_HEIGHT - HOME_POS, 60), // ホームベース周りの土
             base_home: new HomeBase(CANVAS_WIDTH / 2, CANVAS_HEIGHT - HOME_POS, 8), // ホーム
             base_first: new Base(CANVAS_WIDTH / 2 + 200, CANVAS_HEIGHT - HOME_POS - 200, 8), // 1塁
             base_second: new Base(CANVAS_WIDTH / 2, CANVAS_HEIGHT - HOME_POS - 400, 8), // 2塁
@@ -87,20 +97,15 @@ class Field {
     }
 
     draw() {
-        noStroke();
         background(0, 128, 0);
-        // 茶色で描画ピッチャーマウンドを描画
-        fill(139, 69, 19);
-        ellipse(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 200 - HOME_POS, 80, 80);
-        // 白でベースを描画
-        for (let key in this.bases) {
-            this.bases[key].draw();
+        for (let key in this.items) {
+            this.items[key].draw();
         }
     }
 }
 
 class Player {
-    constructor(init_x, init_y, radius=12) {
+    constructor(init_x, init_y, radius=6) {
         this.init_x = init_x;
         this.init_y = init_y;
         this.radius = radius;
@@ -124,12 +129,12 @@ class Player {
     draw(color = 'red') {
         noStroke();
         fill(color);
-        ellipse(this.x, this.y, this.radius, this.radius);
+        ellipse(this.x, this.y, this.radius*2, this.radius*2);
     }
 }
 
 class Batter extends Player {
-    constructor(init_x, init_y, radius=12) {
+    constructor(init_x, init_y, radius=6) {
         super(init_x, init_y, radius);
         this.bat_width = 6 // バットの幅
         this.bat_length = 28 // バットの長さ
@@ -167,7 +172,7 @@ class Batter extends Player {
         // 薄茶色のバットを描画
         var bat_x = this.x + Math.cos(this.angle*(Math.PI/180)) * this.bat_length;
         var bat_y = this.y + Math.sin(this.angle*(Math.PI/180)) * this.bat_length;
-        stroke(180, 100, 50);
+        stroke(222, 184, 135);
         strokeWeight(8);
         line(this.x, this.y, bat_x, bat_y);
         super.draw(color);
@@ -175,15 +180,24 @@ class Batter extends Player {
 }
 
 class Fielder extends Player {
-    constructor(init_x, init_y, radius=12) {
+    constructor(init_x, init_y, radius=6) {
         super(init_x, init_y, radius);
+    }
+
+    move(ball) {
+        return
     }
 }
 
 class Catcher extends Fielder {
-    move() {
+    move(ball) {
         if (ball.alive && !batter.is_hit) {
-            self.x += ball.dx;
+            if ((this.x - ball.x) ** 2 + (this.y - ball.y) ** 2 <= (this.radius + ball.radius) ** 2) {
+                ball.alive = false;
+                fielders.reset();
+            } else {
+                this.x += ball.dx;
+            }
         }
     }
 }
@@ -191,11 +205,17 @@ class Catcher extends Fielder {
 class Fielders {
     constructor(field_) {
         this.fielders = {
-            catcher: new Catcher(field_.bases.base_home.x, field_.bases.base_home.y + 30), // キャッチャー
-            first: new Fielder(field_.bases.base_first.x, field_.bases.base_first.y - 50), // 一塁手
-            second: new Fielder(field_.bases.base_second.x + 120, field_.bases.base_second.y + 10), // 二塁手
-            short: new Fielder(field_.bases.base_second.x - 120, field_.bases.base_second.y + 10), // 遊撃手
-            third: new Fielder(field_.bases.base_third.x, field_.bases.base_third.y - 50), // 三塁手
+            catcher: new Catcher(field_.items.base_home.x, field_.items.base_home.y + 30), // キャッチャー
+            first: new Fielder(field_.items.base_first.x, field_.items.base_first.y - 50), // 一塁手
+            second: new Fielder(field_.items.base_second.x + 120, field_.items.base_second.y + 10), // 二塁手
+            short: new Fielder(field_.items.base_second.x - 120, field_.items.base_second.y + 10), // 遊撃手
+            third: new Fielder(field_.items.base_third.x, field_.items.base_third.y - 50), // 三塁手
+        }
+    }
+
+    reset() {
+        for (let key in this.fielders) {
+            this.fielders[key].reset();
         }
     }
 
@@ -203,9 +223,9 @@ class Fielders {
         return this.fielders[key];
     } 
 
-    move() {
+    move(ball) {
         for (let key in this.fielders) {
-            this.fielders[key].move();
+            this.fielders[key].move(ball);
         }
     }
 
@@ -217,11 +237,12 @@ class Fielders {
 }
 
 class Ball {
-    constructor(init_x, init_y, radius=8) {
+    constructor(init_x, init_y, radius=4) {
         this.init_x = init_x;
         this.init_y = init_y;
         this.radius = radius;
         this.reset();
+        this.alive = false;
     }
 
     reset() {
@@ -232,16 +253,26 @@ class Ball {
         this.dx = this.speed * Math.sin(this.angle*(Math.PI/180));
         this.dy = this.speed * Math.cos(this.angle*(Math.PI/180));
         this.alive = true;
+        this.dead_count = Math.floor(Math.random() * 60) + 60;
     }
 
     move() {
-        this.x += this.dx;
-        this.y += this.dy;
+        if (this.alive) {
+            this.x += this.dx;
+            this.y += this.dy;
+        } else {
+            this.dead_count -= 1;
+            if (this.dead_count <= 0) {
+                this.reset();
+            }
+        }
     }
 
     draw() {
-        noStroke();
-        fill(230, 215, 150);
-        ellipse(this.x, this.y, this.radius, this.radius);
+        if (this.alive) {
+            noStroke();
+            fill(230, 215, 150);
+            ellipse(this.x, this.y, this.radius*2, this.radius*2);
+        }
     }
 }
