@@ -29,6 +29,12 @@ function draw() {
     if (keyIsDown(68) || keyIsDown(RIGHT_ARROW)) {
         batter.dx += 1;
     }
+    // Nキーが押されている場合
+    if (keyIsDown(78)) {
+        batter.swing();
+    } else {
+        batter.swing_back();
+    }
 
     batter.move(); // バッターを移動
 
@@ -123,12 +129,25 @@ class Batter extends Player {
         this.bat_width = 6 // バットの幅
         this.bat_length = 28 // バットの長さ
         this.init_angle = 120 // バットの初期角度
+        this.swing_speed = 15 // バットの振り速度
         this.reset();
     }
 
     reset() {
         super.reset();
         this.angle = this.init_angle;
+    }
+
+    swing() {
+        if (this.angle > -135 && this.angle < 135) {
+            this.angle -= this.swing_speed;
+        }
+    }
+
+    swing_back() {
+        if (this.angle <= -135 || this.angle >= 135) {
+            this.angle = this.init_angle;
+        }
     }
 
     move() {
