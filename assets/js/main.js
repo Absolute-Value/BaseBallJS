@@ -4,7 +4,8 @@ const CANVAS_HEIGHT = 600;
 const HOME_POS = 100
 
 function setup() {
-    createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
+    var canvas = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
+    canvas.parent('GameCanvas');
     field_ = new Field();
     batter = new Batter(field_.bases.base_home.x - 24, field_.bases.base_home.y - 8);
     ball = new Ball(CANVAS_WIDTH/2, CANVAS_HEIGHT/2);
