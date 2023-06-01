@@ -30,8 +30,8 @@ class Ball {
             this.y += this.vy;
 
             // ストライクに入っているかの判定
-            if (field_.items.base_home.x - field_.items.base_home.radius < this.x && this.x < field_.items.base_home.x + field_.items.base_home.radius &&
-                field_.items.base_home.y - field_.items.base_home.radius < this.y && this.y < field_.items.base_home.y) {
+            if (field_.items.base_home.x - field_.items.base_home.radius < this.x + this.radius && this.x - this.radius < field_.items.base_home.x + field_.items.base_home.radius &&
+                field_.items.base_home.y - field_.items.base_home.radius < this.y + this.radius && this.y - this.radius < field_.items.base_home.y) {
                 this.is_strike = true;
             }
         } else {
