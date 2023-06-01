@@ -29,9 +29,9 @@ class Ball {
             this.x += this.vx;
             this.y += this.vy;
 
-            // Check if ball enters base_home area
+            // ストライクに入っているかの判定
             if (field_.items.base_home.x - field_.items.base_home.radius < this.x && this.x < field_.items.base_home.x + field_.items.base_home.radius &&
-                field_.items.base_home.y - field_.items.base_home.radius < this.y && this.y < field_.items.base_home.y + field_.items.base_home.radius) {
+                field_.items.base_home.y - field_.items.base_home.radius < this.y && this.y < field_.items.base_home.y) {
                 this.is_strike = true;
             }
         } else {
