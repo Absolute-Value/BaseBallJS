@@ -40,7 +40,7 @@ class ScoreCounter extends Counter {
 class SBOCounter extends Counter {
     constructor(x=CANVAS_WIDTH-100, y=CANVAS_HEIGHT-100, width=100, height=100) {
         super(x, y, width, height);
-        this.counts = {'S': 2, 'B': 3, 'O': 2};
+        this.counts = {'S': 0, 'B': 0, 'O': 0};
         this.colors = {'S': 'yellow', 'B': 'green', 'O': 'red'};
     }
 
@@ -66,7 +66,7 @@ class SBOCounter extends Counter {
     strike() {
         this.counts['S'] += 1;
         if (this.counts['S'] >= 3) {
-            out();
+            this.out();
         }
     }
 
@@ -79,7 +79,7 @@ class SBOCounter extends Counter {
     ball() {
         this.counts['B'] += 1;
         if (this.counts['B'] >= 4) {
-            reset();
+            this.reset();
         }
     }
 
