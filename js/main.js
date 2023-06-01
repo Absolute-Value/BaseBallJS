@@ -14,21 +14,17 @@ function setup() {
 }
 
 function draw() {
-    // Wキーまたは上キーが押されたらバッターを上に移動
-    if (keyIsDown(87) || keyIsDown(UP_ARROW)) {
-        batter.vy -= 1;
+    if (keyIsDown(87) || keyIsDown(UP_ARROW)) { // Wキーまたは上キーが押されたら
+        batter.vy -= 1; // バッターを上に移動
     }
-    // Sキーまたは下キーが押されたらバッターを下に移動
-    if (keyIsDown(83) || keyIsDown(DOWN_ARROW)) {
-        batter.vy += 1;
+    if (keyIsDown(83) || keyIsDown(DOWN_ARROW)) { // Sキーまたは下キーが押されたら
+        batter.vy += 1; // バッターを下に移動
     }
-    // Aキーまたは左キーが押されたらバッターを左に移動
-    if (keyIsDown(65) || keyIsDown(LEFT_ARROW)) {
-        batter.vx -= 1;
+    if (keyIsDown(65) || keyIsDown(LEFT_ARROW)) { // Aキーまたは左キーが押されたら
+        batter.vx -= 1; // バッターを左に移動
     }
-    // Dキーまたは右キーが押されたらバッターを右に移動
-    if (keyIsDown(68) || keyIsDown(RIGHT_ARROW)) {
-        batter.vx += 1;
+    if (keyIsDown(68) || keyIsDown(RIGHT_ARROW)) { // Dキーまたは右キーが押されたら
+        batter.vx += 1; // バッターを右に移動
     }
     // Nキーが押されている場合
     if (keyIsDown(78)) {
