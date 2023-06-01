@@ -12,13 +12,13 @@ class Player {
         this.y = this.init_y;
         this.vx = 0;
         this.vy = 0;
+        this.speed = 0;
     }
 
     move() {
         this.x += this.vx;
         this.y += this.vy;
-        this.vx = 0;
-        this.vy = 0;
+        this.vx, this.vy = 0, 0;
     }
 
     draw() {
@@ -61,7 +61,26 @@ class Batter extends Player {
         }
     }
 
-    move() {
+    move(field_) {
+        if (this.is_hit) {
+            if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
+            dx = field_.items.base_first.x - this.x;
+            dy = field_.items.base_first.y - this.y;
+            distance = Math.sqrt(dx ** 2 + dy ** 2);
+            if (distance >= 1) {
+                this.vx = dx / distance * this.speed;
+                this.vy = dy / distance * this.speed;
+            }
+        } else {
+            if ((this.x - this.radius <= field_.items.batter_box_left.center_x - field_.items.batter_box_left.width / 2 && this.vx < 0) | 
+                (field_.items.batter_box_left.center_x + field_.items.batter_box_left.width / 2 <= this.x + this.radius && this.vx > 0)) {
+                this.vx = 0;
+            }
+            if ((this.y - this.radius <= field_.items.batter_box_left.center_y - field_.items.batter_box_left.height / 2 && this.vy < 0) |
+                (this.y + this.radius >= field_.items.batter_box_left.center_y + field_.items.batter_box_left.height / 2 && this.vy > 0)) {
+                this.vy = 0;
+            }
+        } 
         this.x += this.vx;
         this.y += this.vy;
         this.vx = 0;
