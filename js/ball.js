@@ -16,9 +16,10 @@ class Ball {
         this.vy = this.speed * Math.cos(this.angle*(Math.PI/180));
         this.alive = true;
         this.dead_count = Math.floor(Math.random() * 60) + 60;
+        this.is_strike = false
     }
 
-    move() {
+    move(field_) {
         if (this.alive) {
             if (this.x + this.vx > CANVAS_WIDTH - this.radius || this.x + this.vx < this.radius) {
                 this.vx *= -1;
@@ -27,6 +28,12 @@ class Ball {
             }
             this.x += this.vx;
             this.y += this.vy;
+
+            // Check if ball enters base_home area
+            if (field_.items.base_home.x - field_.items.base_home.radius < this.x && this.x < field_.items.base_home.x + field_.items.base_home.radius &&
+                field_.items.base_home.y - field_.items.base_home.radius < this.y && this.y < field_.items.base_home.y + field_.items.base_home.radius) {
+                this.is_strike = true;
+            }
         } else {
             this.dead_count -= 1;
             if (this.dead_count <= 0) {

@@ -103,16 +103,22 @@ class Fielder extends Player {
         super(init_x, init_y, radius);
     }
 
-    move(ball) {
+    move(ball, sbo_counter) {
+        // ボールに向かってくように移動
         return
     }
 }
 
 class Catcher extends Fielder {
-    move(ball) {
+    move(ball, sbo_counter) {
         if (ball.alive && !batter.is_hit) {
             if ((this.x - ball.x) ** 2 + (this.y - ball.y) ** 2 <= (this.radius + ball.radius) ** 2) {
                 ball.alive = false;
+                if (ball.is_strike) {
+                    sbo_counter.strike();
+                } else {
+                    sbo_counter.ball();
+                }
                 fielders.reset();
             } else {
                 this.x += ball.vx;
@@ -143,9 +149,9 @@ class Fielders {
         return this.fielders[key];
     } 
 
-    move(ball) {
+    move(ball, sbo_counter) {
         for (let key in this.fielders) {
-            this.fielders[key].move(ball);
+            this.fielders[key].move(ball, sbo_counter);
         }
     }
 
