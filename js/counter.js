@@ -1,18 +1,45 @@
-class SBOCounter {
-    constructor(x=CANVAS_WIDTH-100, y=CANVAS_HEIGHT-100, width=100, height=100) {
+class Counter {
+    constructor(x=0, y=0, width=100, height=100) {
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
         this.bg_color = 'black';
-        this.counts = {'S': 0, 'B': 0, 'O': 0};
-        this.colors = {'S': 'yellow', 'B': 'green', 'O': 'red'};
     }
 
     draw() {
         noStroke();
         fill(this.bg_color);
         rect(this.x, this.y, this.width, this.height);
+    }
+}
+
+class ScoreCounter extends Counter {
+    constructor(x=0, y=CANVAS_HEIGHT-100, width=100, height=100) {
+        super(x, y, width, height);
+        this.inning = 1;
+        this.turn = 0;
+        this.turn_name = {0: '表', 1: '裏'};
+    }
+
+    draw() {
+        super.draw();
+        fill('white');
+        textAlign(CENTER, CENTER);
+        textSize(this.height/4);
+        text(this.inning + this.turn_name[this.turn], this.x + this.width/2, this.y + this.height/3/2);
+    }
+}
+
+class SBOCounter extends Counter {
+    constructor(x=CANVAS_WIDTH-100, y=CANVAS_HEIGHT-100, width=100, height=100) {
+        super(x, y, width, height);
+        this.counts = {'S': 0, 'B': 0, 'O': 0};
+        this.colors = {'S': 'yellow', 'B': 'green', 'O': 'red'};
+    }
+
+    draw() {
+        super.draw();
         // this.countsのキーと値を順番に取り出して、キーを白で縦に並べて表示する
         // キーの横に値の数だけ円を表示する
         let i = 0;

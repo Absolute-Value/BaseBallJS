@@ -9,6 +9,7 @@ function setup() {
     batter = new Batter(field_.items.base_home.x - 24, field_.items.base_home.y - 8); // バッターを作成
     fielders = new Fielders(field_); // 野手を作成
     ball = new Ball(fielders.get('pitcher').x, fielders.get('pitcher').y); // ボールを作成
+    score_counter = new ScoreCounter();
     sbo_counter = new SBOCounter();
     frameRate(60);
 }
@@ -41,5 +42,6 @@ function draw() {
     batter.draw(); // バッターを描画
     fielders.draw(); // 野手を描画
     ball.draw(); // ボールを描画
+    score_counter.draw(); // スコアカウンターを描画
     sbo_counter.draw(); // SBOカウンターを描画
 }
