@@ -11,9 +11,7 @@ class Ball {
         this.x = this.init_x;
         this.y = this.init_y;
         this.speed = Math.random() * 3 + 3.5;
-        this.angle = Math.random() * 10 - 5;
-        this.vx = this.speed * Math.sin(this.angle*(Math.PI/180));
-        this.vy = this.speed * Math.cos(this.angle*(Math.PI/180));
+        this.angle = 90 + Math.random() * 10 - 5;
         this.alive = true;
         this.dead_count = Math.floor(Math.random() * 60) + 60;
         this.is_strike = false
@@ -21,13 +19,8 @@ class Ball {
 
     move(field_) {
         if (this.alive) {
-            if (this.x + this.vx > CANVAS_WIDTH - this.radius || this.x + this.vx < this.radius) {
-                this.vx *= -1;
-            } if (this.y + this.vy > CANVAS_HEIGHT - this.radius || this.y + this.vy < this.radius) {
-                this.vy *= -1;
-            }
-            this.x += this.vx;
-            this.y += this.vy;
+            this.x += this.speed * Math.cos(this.angle * Math.PI / 180);
+            this.y += this.speed * Math.sin(this.angle * Math.PI / 180);
 
             // ストライクに入っているかの判定
             if (field_.items.base_home.x - field_.items.base_home.radius < this.x + this.radius && this.x - this.radius < field_.items.base_home.x + field_.items.base_home.radius &&

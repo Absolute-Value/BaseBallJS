@@ -87,11 +87,11 @@ class Batter extends Player {
                 pointInTriangle(bat_points.x1, bat_points.y1, bat_points.x3, bat_points.y3, bat_points.x4, bat_points.y4, ball_top.x, ball_top.y)) {
                 this.is_hit = true;
                 if (this.swing_count == 0) { // バットが静止していたら
-                    ball.vy = -5;
-                    ball.vx = 0;
-                } else {
-                    ball.vx = this.swing_count * Math.sin(radian);
-                    ball.vy = - this.swing_count * Math.cos(radian);
+                    ball.speed = 0.5 + Math.random() * 0.5;
+                    ball.angle = this.angle - ball.angle;
+                } else { // バットが動いていたら
+                    ball.speed = this.swing_count * 1.2;
+                    ball.angle = this.angle - 90;
                 }
             }
         }
@@ -171,8 +171,10 @@ class Catcher extends Fielder {
                 }
                 fielders.reset();
             } else {
-                this.x += ball.vx;
+                this.x += ball.speed * Math.cos(ball.angle * Math.PI / 180);
             }
+        } else {
+            super.move(batter, ball, sbo_counter);
         }
     }
 }
