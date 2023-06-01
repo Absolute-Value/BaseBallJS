@@ -19,7 +19,9 @@ class ScoreCounter extends Counter {
         super(x, y, width, height);
         this.inning = 1;
         this.turn = 0;
-        this.turn_name = {0: '表', 1: '裏'};
+        this.turn_name = ['表', '裏'];
+        this.team_name = ['C', 'D'];
+        this.scores = [0, 0];
     }
 
     draw() {
@@ -28,13 +30,17 @@ class ScoreCounter extends Counter {
         textAlign(CENTER, CENTER);
         textSize(this.height/4);
         text(this.inning + this.turn_name[this.turn], this.x + this.width/2, this.y + this.height/3/2);
+        for (let i=0; i<this.scores.length; i++) {
+            text(this.team_name[i], this.x + this.width / 3, this.y + (i*2+3)*this.height/3/2);
+            text(this.scores[i], this.x + this.width / 3 * 2, this.y + (i*2+3)*this.height/3/2);
+        }
     }
 }
 
 class SBOCounter extends Counter {
     constructor(x=CANVAS_WIDTH-100, y=CANVAS_HEIGHT-100, width=100, height=100) {
         super(x, y, width, height);
-        this.counts = {'S': 0, 'B': 0, 'O': 0};
+        this.counts = {'S': 2, 'B': 3, 'O': 2};
         this.colors = {'S': 'yellow', 'B': 'green', 'O': 'red'};
     }
 
@@ -42,16 +48,16 @@ class SBOCounter extends Counter {
         super.draw();
         // this.countsのキーと値を順番に取り出して、キーを白で縦に並べて表示する
         // キーの横に値の数だけ円を表示する
+        textAlign(CENTER, CENTER);
         let i = 0;
         for (let key in this.counts) {
-            fill('white');
-            textAlign(LEFT, TOP);
             // テキストのサイズを指定
+            fill('white');
             textSize(this.width/4);
-            text(key, this.x, this.y + i*(this.height/3));
+            text(key, this.x + this.width/4/2, this.y + (i*2+1)*(this.height/3/2));
             for (let j=0; j<this.counts[key]; j++) {
                 fill(this.colors[key])
-                ellipse(this.x + (j+1)*(this.width/4) + this.width/4/2, this.y + i*(this.height/3) + this.width/4/2, this.width/4);
+                ellipse(this.x + (j*2+3)*(this.width/4/2), this.y + (i*2+1)*(this.height/3/2), this.width/5);
             }
             i++;
         }
