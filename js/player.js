@@ -71,26 +71,28 @@ class Batter extends Player {
     }
 
     hitting(ball) { // バットに当たったボールを跳ね返す
-        let radian = this.angle * (Math.PI/180);
-        this.bat_top_x = this.x + Math.cos(radian) * this.bat_length;
-        this.bat_top_y = this.y + Math.sin(radian) * this.bat_length;
-        
-        let ball_top = {x: ball.x + ball.radius * Math.sin(radian), y: ball.y + ball.radius * Math.cos(radian)};
-        let bat_points = {
-            x1: this.x - this.bat_width / 2 * Math.sin(radian), y1: this.y - this.bat_width / 2 * Math.cos(radian),
-            x2: this.x + this.bat_width / 2 * Math.sin(radian), y2: this.y + this.bat_width / 2 * Math.cos(radian),
-            x3: this.bat_top_x + this.bat_width / 2 * Math.sin(radian), y3: this.bat_top_y + this.bat_width / 2 * Math.cos(radian),
-            x4: this.bat_top_x - this.bat_width / 2 * Math.sin(radian), y4: this.bat_top_y - this.bat_width / 2 * Math.cos(radian)
-        }
-        if (pointInTriangle(bat_points.x1, bat_points.y1, bat_points.x2, bat_points.y2, bat_points.x3, bat_points.y3, ball_top.x, ball_top.y) |
-            pointInTriangle(bat_points.x1, bat_points.y1, bat_points.x3, bat_points.y3, bat_points.x4, bat_points.y4, ball_top.x, ball_top.y)) {
-            this.is_hit = true;
-            if (this.swing_count == 0) { // バットが静止していたら
-                ball.vy = -5;
-                ball.vx = 0;
-            } else {
-                ball.vx = this.swing_count * Math.sin(radian);
-                ball.vy = - this.swing_count * Math.cos(radian);
+        if (!this.is_hit) {
+            let radian = this.angle * (Math.PI/180);
+            this.bat_top_x = this.x + Math.cos(radian) * this.bat_length;
+            this.bat_top_y = this.y + Math.sin(radian) * this.bat_length;
+            
+            let ball_top = {x: ball.x + ball.radius * Math.sin(radian), y: ball.y + ball.radius * Math.cos(radian)};
+            let bat_points = {
+                x1: this.x - this.bat_width / 2 * Math.sin(radian), y1: this.y - this.bat_width / 2 * Math.cos(radian),
+                x2: this.x + this.bat_width / 2 * Math.sin(radian), y2: this.y + this.bat_width / 2 * Math.cos(radian),
+                x3: this.bat_top_x + this.bat_width / 2 * Math.sin(radian), y3: this.bat_top_y + this.bat_width / 2 * Math.cos(radian),
+                x4: this.bat_top_x - this.bat_width / 2 * Math.sin(radian), y4: this.bat_top_y - this.bat_width / 2 * Math.cos(radian)
+            }
+            if (pointInTriangle(bat_points.x1, bat_points.y1, bat_points.x2, bat_points.y2, bat_points.x3, bat_points.y3, ball_top.x, ball_top.y) |
+                pointInTriangle(bat_points.x1, bat_points.y1, bat_points.x3, bat_points.y3, bat_points.x4, bat_points.y4, ball_top.x, ball_top.y)) {
+                this.is_hit = true;
+                if (this.swing_count == 0) { // バットが静止していたら
+                    ball.vy = -5;
+                    ball.vx = 0;
+                } else {
+                    ball.vx = this.swing_count * Math.sin(radian);
+                    ball.vy = - this.swing_count * Math.cos(radian);
+                }
             }
         }
     }
