@@ -66,6 +66,31 @@ class Line {
     }
 }
 
+class Box {
+    constructor(center_x, center_y, width, height, color=null, fill_color=null) {
+        this.center_x = center_x;
+        this.center_y = center_y;
+        this.width = width;
+        this.height = height;
+        this.color = color;
+        this.fill_color = fill_color;
+    }
+
+    draw() {
+        if (this.color) {
+            stroke(this.color);
+        } else {
+            noStroke();
+        }
+        if (this.fill_color) {
+            fill(this.fill_color);
+        } else {
+            noFill();
+        }
+        rect(this.center_x-this.width/2, this.center_y-this.height/2, this.width, this.height);
+    }
+}
+
 class Field {
     constructor() {
         const pos = {
@@ -84,6 +109,9 @@ class Field {
             dirt_third: new DirtDiamond(pos.base_third.x + 15, pos.base_third.y - 8, 50, DIRT_COLOR), // 3塁周りの土
             line_right: new Line(pos.base_home.x, pos.base_home.y, pos.base_home.x - 400, pos.base_home.y - 400), // ホームから1塁への線
             line_left: new Line(pos.base_home.x, pos.base_home.y, pos.base_home.x + 400, pos.base_home.y - 400), // ホームから3塁への線
+            base_home_dirt: new Box(pos.base_home.x, pos.base_home.y-8, 24, 24, null, DIRT_COLOR), // ホームベース下の土（線を消すため）
+            batter_box_left: new Box(pos.base_home.x-24, pos.base_home.y-8, 24, 36, 'white', DIRT_COLOR),// color='white'), // バッターボックス
+            batter_box_right: new Box(pos.base_home.x+24, pos.base_home.y-8, 24, 36, 'white', DIRT_COLOR),// color='white'), // バッターボックス
             base_home: new HomeBase(pos.base_home.x, pos.base_home.y, 8), // ホーム
             base_first: new Diamond(pos.base_first.x, pos.base_first.y, 8), // 1塁
             base_second: new Diamond(pos.base_second.x, pos.base_second.y, 8), // 2塁
