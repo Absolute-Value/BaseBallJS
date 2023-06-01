@@ -10,15 +10,13 @@ class Player {
     reset() {
         this.x = this.init_x;
         this.y = this.init_y;
-        this.vx = 0;
-        this.vy = 0;
         this.speed = 0;
+        this.angle = 0;
     }
 
     move() {
-        this.x += this.vx;
-        this.y += this.vy;
-        this.vx, this.vy = 0, 0;
+        this.x += this.speed * Math.cos(this.angle * Math.PI / 180);
+        this.y += this.speed * Math.sin(this.angle * Math.PI / 180);
     }
 
     draw() {
@@ -52,6 +50,8 @@ class Batter extends Player {
         super.reset();
         this.is_hit = false;
         this.angle = this.init_angle;
+        this.vx = 0;
+        this.vy = 0;
     }
 
     swing() {
@@ -86,7 +86,7 @@ class Batter extends Player {
             if (pointInTriangle(bat_points.x1, bat_points.y1, bat_points.x2, bat_points.y2, bat_points.x3, bat_points.y3, ball_top.x, ball_top.y) |
                 pointInTriangle(bat_points.x1, bat_points.y1, bat_points.x3, bat_points.y3, bat_points.x4, bat_points.y4, ball_top.x, ball_top.y)) {
                 this.is_hit = true;
-                if (this.swing_count == 0) { // バットが静止していたら
+                if (this.swing_count == 0) { // バットが静止していたら（バント）
                     ball.speed = 0.5 + Math.random() * 0.5;
                     ball.angle = this.angle - ball.angle;
                 } else { // バットが動いていたら
@@ -139,20 +139,21 @@ class Fielder extends Player {
         super(init_x, init_y, radius);
     }
 
-    move(batter, ball, sbo_counter) {
+    move(batter, fielders, ball, sbo_counter) {
         if (batter.is_hit && ball.alive) {
             if ((this.x - ball.x) ** 2 + (this.y - ball.y) ** 2 <= (this.radius + ball.radius) ** 2) {
                 ball.alive = false;
                 sbo_counter.out();
                 batter.reset();
+                fielders.reset();
             } else {
                 if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
                 let dx = ball.x - this.x;
                 let dy = ball.y - this.y;
                 let distance = Math.sqrt(dx ** 2 + dy ** 2);
                 if (distance >= 1) {
-                    this.vx = dx / distance * this.speed;
-                    this.vy = dy / distance * this.speed;
+                    this.x += dx / distance * this.speed;
+                    this.y += dy / distance * this.speed;
                 }
             }
         }
@@ -160,7 +161,7 @@ class Fielder extends Player {
 }
 
 class Catcher extends Fielder {
-    move(batter, ball, sbo_counter) {
+    move(batter, fielders, ball, sbo_counter) {
         if (ball.alive && !batter.is_hit) {
             if ((this.x - ball.x) ** 2 + (this.y - ball.y) ** 2 <= (this.radius + ball.radius) ** 2) {
                 ball.alive = false;
@@ -204,7 +205,7 @@ class Fielders {
     move(batter, ball, sbo_counter) {
         for (let key in this.fielders) {
             if (key != "pitcher") {
-                this.fielders[key].move(batter, ball, sbo_counter);
+                this.fielders[key].move(batter, this, ball, sbo_counter);
             }
         }
     }
