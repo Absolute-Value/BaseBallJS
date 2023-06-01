@@ -19,8 +19,17 @@ class Ball {
 
     move(field_) {
         if (this.alive) {
-            this.x += this.speed * Math.cos(this.angle * Math.PI / 180);
-            this.y += this.speed * Math.sin(this.angle * Math.PI / 180);
+            let vx = this.speed * Math.cos(this.angle * Math.PI / 180);
+            this.x += vx
+            if (this.x + vx < 0 | CANVAS_WIDTH < this.x + vx) {
+                this.angle = 180 - this.angle;
+            }
+
+            let vy = this.speed * Math.sin(this.angle * Math.PI / 180);
+            this.y += vy
+            if (this.y + vy < 0 | CANVAS_HEIGHT < this.y + vy) {
+                this.angle = - this.angle;
+            }
 
             // ストライクに入っているかの判定
             if (field_.items.base_home.x - field_.items.base_home.radius < this.x + this.radius && this.x - this.radius < field_.items.base_home.x + field_.items.base_home.radius &&
