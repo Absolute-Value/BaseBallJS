@@ -64,9 +64,9 @@ class Batter extends Player {
     move(field_) {
         if (this.is_hit) {
             if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
-            dx = field_.items.base_first.x - this.x;
-            dy = field_.items.base_first.y - this.y;
-            distance = Math.sqrt(dx ** 2 + dy ** 2);
+            let dx = field_.items.base_first.x - this.x;
+            let dy = field_.items.base_first.y - this.y;
+            let distance = Math.sqrt(dx ** 2 + dy ** 2);
             if (distance >= 1) {
                 this.vx = dx / distance * this.speed;
                 this.vy = dy / distance * this.speed;
@@ -88,12 +88,14 @@ class Batter extends Player {
     }
 
     draw() {
-        // 薄茶色のバットを描画
-        this.bat_x = this.x + Math.cos(this.angle*(Math.PI/180)) * this.bat_length;
-        this.bat_y = this.y + Math.sin(this.angle*(Math.PI/180)) * this.bat_length;
-        stroke(222, 184, 135);
-        strokeWeight(8);
-        line(this.x, this.y, this.bat_x,this.bat_y);
+        if (!this. is_hit) {
+            // 薄茶色のバットを描画
+            this.bat_x = this.x + Math.cos(this.angle*(Math.PI/180)) * this.bat_length;
+            this.bat_y = this.y + Math.sin(this.angle*(Math.PI/180)) * this.bat_length;
+            stroke(222, 184, 135);
+            strokeWeight(8);
+            line(this.x, this.y, this.bat_x,this.bat_y);
+        }
         super.draw();
     }
 }
@@ -105,13 +107,19 @@ class Fielder extends Player {
 
     move(batter, ball, sbo_counter) {
         if (batter.is_hit) {
-            if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
-            dx = ball.x - this.x;
-            dy = ball.y - this.y;
-            distance = Math.sqrt(dx ** 2 + dy ** 2);
-            if (distance >= 1) {
-                this.vx = dx / distance * this.speed;
-                this.vy = dy / distance * this.speed;
+            if ((this.x - ball.x) ** 2 + (this.y - ball.y) ** 2 <= (this.radius + ball.radius) ** 2) {
+                ball.alive = false;
+                sbo_counter.out();
+                fielders.reset();
+            } else {
+                if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
+                let dx = ball.x - this.x;
+                let dy = ball.y - this.y;
+                let distance = Math.sqrt(dx ** 2 + dy ** 2);
+                if (distance >= 1) {
+                    this.vx = dx / distance * this.speed;
+                    this.vy = dy / distance * this.speed;
+                }
             }
         }
     }
