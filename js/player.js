@@ -58,7 +58,7 @@ class Batter extends Player {
     swing() {
         if (this.angle > -135 && this.angle < 135) {
             this.swing_count += 1;
-            this.angle -= this.swing_speed;
+            this.angle -= this.swing_speed * 1.1;
         } else {
             this.swing_count = 0;
         }
@@ -92,7 +92,7 @@ class Batter extends Player {
                     ball.speed = 0.5 + Math.random() * 0.5;
                     ball.angle = this.angle - ball.angle;
                 } else { // バットが動いていたら
-                    ball.speed = this.swing_count * 1.2;
+                    ball.speed = this.swing_count;
                     ball.angle = this.angle - 90;
                 }
             } else if ((ball.x-this.bat_top_x)**2 + (ball.y-this.bat_top_y)**2 <= (ball.radius+this.bat_width)**2) { // バットの先端に当たったら
@@ -111,7 +111,7 @@ class Batter extends Player {
         if (this.is_hit) {
             if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
             var dx = field_.items.base_first.x - this.x;
-            var dy = field_.items.base_first.y - this.y;
+            var dy = field_.items.base_first.y - field_.items.base_first.radius - this.y;
             this.distance = Math.sqrt(dx ** 2 + dy ** 2);
             if (this.distance >= 1) {
                 this.vx = dx / this.distance * this.speed;
