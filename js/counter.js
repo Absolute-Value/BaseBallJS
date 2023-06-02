@@ -40,6 +40,22 @@ class ScoreCounter extends Counter {
     }
 
     turn_change() {
+        if (this.inning >= 9) { // 9回以降
+            if (this.turn == 0) { // 表が終了した際に、裏のチームが勝っていればゲーム終了
+                if (this.scores[0] < this.scores[1]) {
+                    console.log(this.team_name[1] + 'の勝ち');
+                    return;
+                }
+            } else { // 裏が終了した際に、表のチームが勝っていればゲーム終了
+                if (this.scores[0] > this.scores[1]) {
+                    console.log(this.team_name[0] + 'の勝ち');
+                    return;
+                } else if (this.inning == 12) {
+                    console.log('引き分け');
+                    return;
+                }
+            }
+        }
         this.turn = (this.turn + 1) % 2;
         if (this.turn == 0) {
             this.inning += 1;
