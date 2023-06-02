@@ -242,9 +242,7 @@ class Fielders {
 
     move(field_, batter, ball, sbo_counter) {
         for (let key in this.fielders) {
-            if (key != "pitcher") {
-                this.fielders[key].move(field_, batter, this, ball, sbo_counter);
-            }
+            this.fielders[key].move(field_, batter, this, ball, sbo_counter);
         }
     }
 
