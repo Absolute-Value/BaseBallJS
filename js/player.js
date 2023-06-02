@@ -157,10 +157,8 @@ class Fielder extends Player {
                 fielders.someome_has_ball = true;
                 if (this.hold_count > 0) { // 一定時間ボールを持つ
                     this.hold_count -= 1;
-                    this.speed -= 0.05;
-                    if (this.speed < 0.2) {this.speed = 0;}
-                    ball.speed = this.speed * 0.9;
-                    ball.angle = this.angle;
+                    this.speed = 0;
+                    ball.speed = 0;
                 } else { // 一定時間ボールを持ったら、ファーストへボールを投げる
                     ball.speed = 4
                     var dx = field_.items.base_first.x - field_.items.base_first.radius - this.x;
@@ -168,8 +166,7 @@ class Fielder extends Player {
                     ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
                 }
             } if(fielders.someome_has_ball) {
-                this.speed -= 0.05;
-                if (this.speed < 0.2) {this.speed = 0;}
+                this.speed = 0;
             } else { // 誰もボールを拾っていないときは、ボールを追いかける
                 if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
                 var dx = ball.x - this.x;
