@@ -41,16 +41,29 @@ class Fielder extends Player {
     move(field_, batter, fielders, ball, sbo_counter) {
         if (batter.is_hit && ball.alive) {
             if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) { // ボールを拾ったら
-                fielders.someome_has_ball = true;
-                if (this.hold_count > 0) { // 一定時間ボールを持つ
-                    this.hold_count -= 1;
-                    this.speed = 0;
-                    ball.speed = 0;
-                } else { // 一定時間ボールを持ったら、ファーストへボールを投げる
-                    ball.speed = 4
-                    var dx = field_.items.base_first.x - field_.items.base_first.radius - this.x;
-                    var dy = field_.items.base_first.y - field_.items.base_first.radius*2 - this.y;
-                    ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                if (ball.is_foul) {
+                    ball.alive = false;
+                    if (ball.is_foul) {
+                        sbo_counter.foul();
+                    } else if (batter.distance > 1) {
+                        sbo_counter.out();
+                    } else {
+                        sbo_counter.reset();
+                    }
+                    batter.reset();
+                    fielders.reset();
+                } else {
+                    fielders.someome_has_ball = true;
+                    if (this.hold_count > 0) { // 一定時間ボールを持つ
+                        this.hold_count -= 1;
+                        this.speed = 0;
+                        ball.speed = 0;
+                    } else { // 一定時間ボールを持ったら、ファーストへボールを投げる
+                        ball.speed = 4
+                        var dx = field_.items.base_first.x - field_.items.base_first.radius - this.x;
+                        var dy = field_.items.base_first.y - field_.items.base_first.radius*2 - this.y;
+                        ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                    }
                 }
             } else if (fielders.someome_has_ball) {
                 this.speed = 0;
@@ -90,9 +103,7 @@ class First extends Player {
         if (batter.is_hit && ball.alive) {
             if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) {
                 ball.alive = false;
-                if (ball.is_foul) {
-                    sbo_counter.foul();
-                } else if (batter.distance > 1) {
+                if (batter.distance > 1) {
                     sbo_counter.out();
                 } else {
                     sbo_counter.reset();
@@ -100,13 +111,21 @@ class First extends Player {
                 batter.reset();
                 fielders.reset();
             } else {
-                if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
-                var dx = field_.items.base_first.x - field_.items.base_first.radius - this.x;
-                var dy = field_.items.base_first.y - field_.items.base_first.radius*2 - this.y;
-                var distance = Math.sqrt(dx ** 2 + dy ** 2);
-                if (distance > 1) {
-                    this.angle = acos(dx / distance) * 180 / PI;
+                if (ball.is_foul) {
+                    if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
+                    var dx = ball.x - this.x;
+                    var dy = ball.y - this.y;
+                    this.angle = Math.atan2(dy, dx) * 180 / Math.PI;
                     super.move();
+                } else {
+                    if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
+                    var dx = field_.items.base_first.x - field_.items.base_first.radius - this.x;
+                    var dy = field_.items.base_first.y - field_.items.base_first.radius*2 - this.y;
+                    var distance = Math.sqrt(dx ** 2 + dy ** 2);
+                    if (distance > 1) {
+                        this.angle = acos(dx / distance) * 180 / PI;
+                        super.move();
+                    }
                 }
             }
         }
@@ -121,8 +140,8 @@ class Fielders {
             catcher: new Catcher(field_.items.base_home.x, field_.items.base_home.y + 30), // キャッチャー
             first: new First(field_.items.base_first.x, field_.items.base_first.y - 50), // 一塁手
             second: new Fielder(field_.items.base_second.x + 120, field_.items.base_second.y + 10), // 二塁手
-            short: new Fielder(field_.items.base_second.x - 120, field_.items.base_second.y + 10), // 遊撃手
-            third: new Fielder(field_.items.base_third.x, field_.items.base_third.y - 50), // 三塁手
+            short: new FielderLeft(field_.items.base_second.x - 120, field_.items.base_second.y + 10), // 遊撃手
+            third: new FielderLeft(field_.items.base_third.x, field_.items.base_third.y - 50), // 三塁手
         }
         this.someome_has_ball = false;
     }
