@@ -73,6 +73,7 @@ class Batter extends Player {
 
     hitting(ball) { // バットに当たったボールを跳ね返す
         if (!this.is_hit) {
+            // バットの四隅を計算
             let radian = this.angle * (Math.PI/180);
             this.bat_top_x = this.x + Math.cos(radian) * this.bat_length;
             this.bat_top_y = this.y + Math.sin(radian) * this.bat_length;
@@ -85,7 +86,7 @@ class Batter extends Player {
                 x4: this.bat_top_x - this.bat_width / 2 * Math.sin(radian), y4: this.bat_top_y - this.bat_width / 2 * Math.cos(radian)
             }
             if (pointInTriangle(bat_points.x1, bat_points.y1, bat_points.x2, bat_points.y2, bat_points.x3, bat_points.y3, ball_top.x, ball_top.y) |
-                pointInTriangle(bat_points.x1, bat_points.y1, bat_points.x3, bat_points.y3, bat_points.x4, bat_points.y4, ball_top.x, ball_top.y)) {
+                pointInTriangle(bat_points.x1, bat_points.y1, bat_points.x3, bat_points.y3, bat_points.x4, bat_points.y4, ball_top.x, ball_top.y)) { // 四隅の中に含まれていたら
                 this.is_hit = true;
                 if (this.swing_count == 0) { // バットが静止していたら（バント）
                     ball.speed = 0.5 + Math.random() * 0.5;
@@ -94,6 +95,15 @@ class Batter extends Player {
                     ball.speed = this.swing_count * 1.2;
                     ball.angle = this.angle - 90;
                 }
+            } else if ((ball.x-this.bat_top_x)**2 + (ball.y-this.bat_top_y)**2 <= (ball.radius+this.bat_width)**2) { // バットの先端に当たったら
+                this.is_hit = true;
+                if (this.swing_count == 0) { // バットが静止していたら（バント）
+                    ball.speed = 0.5 + Math.random() * 0.5;
+                }
+                var dx = ball.x - this.bat_top_x;
+                var dy = ball.y - this.bat_top_y;
+                ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                console.log(ball.angle)
             }
         }
     }
