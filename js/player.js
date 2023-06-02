@@ -140,24 +140,43 @@ class Batter extends Player {
 }
 
 class Fielder extends Player {
-    constructor(init_x, init_y, radius=6) {
+    constructor(init_x, init_y, radius=6, hold_time=15) {
         super(init_x, init_y, radius);
+        this.hold_time = hold_time;
+        this.reset();
+    }
+
+    reset() {
+        super.reset();
+        this.hold_count = this.hold_time;
     }
 
     move(field_, batter, fielders, ball, sbo_counter) {
         if (batter.is_hit && ball.alive) {
-            if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) { // ボールを拾ったら、ファーストへ送球
-                ball.speed = 4
-                var dx = field_.items.base_first.x - field_.items.base_first.radius - this.x;
-                var dy = field_.items.base_first.y - field_.items.base_first.radius*2 - this.y;
-                ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
-            } else { // ボールを拾っていないときは、ボールを追いかける
+            if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) { // ボールを拾ったら
+                fielders.someome_has_ball = true;
+                if (this.hold_count > 0) { // 一定時間ボールを持つ
+                    this.hold_count -= 1;
+                    this.speed -= 0.05;
+                    if (this.speed < 0.2) {this.speed = 0;}
+                    ball.speed = this.speed * 0.9;
+                    ball.angle = this.angle;
+                } else { // 一定時間ボールを持ったら、ファーストへボールを投げる
+                    ball.speed = 4
+                    var dx = field_.items.base_first.x - field_.items.base_first.radius - this.x;
+                    var dy = field_.items.base_first.y - field_.items.base_first.radius*2 - this.y;
+                    ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                }
+            } if(fielders.someome_has_ball) {
+                this.speed -= 0.05;
+                if (this.speed < 0.2) {this.speed = 0;}
+            } else { // 誰もボールを拾っていないときは、ボールを追いかける
                 if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
                 var dx = ball.x - this.x;
                 var dy = ball.y - this.y;
                 this.angle = Math.atan2(dy, dx) * 180 / Math.PI;
-                super.move();
             }
+            super.move();
         }
     }
 }
@@ -219,9 +238,11 @@ class Fielders {
             short: new Fielder(field_.items.base_second.x - 120, field_.items.base_second.y + 10), // 遊撃手
             third: new Fielder(field_.items.base_third.x, field_.items.base_third.y - 50), // 三塁手
         }
+        this.someome_has_ball = false;
     }
 
     reset() {
+        this.someome_has_ball = false;
         for (let key in this.fielders) {
             this.fielders[key].reset();
         }
