@@ -78,21 +78,9 @@ class Fielder extends Player {
     }
 }
 
-class Catcher extends Fielder {
+class Pitcher extends Fielder {
     move(field_, batter, fielders, ball, sbo_counter) {
-        if (ball.alive && !batter.is_hit) { // バッターが打たなかったとき
-            if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) {
-                ball.alive = false;
-                if (ball.is_strike) {
-                    sbo_counter.strike();
-                } else {
-                    sbo_counter.ball();
-                }
-                fielders.reset();
-            } else { // 投手の球筋を追う
-                this.x += ball.speed * Math.cos(ball.angle * Math.PI / 180);
-            }
-        } else { // バッターが打ったときは、他の野手と同じ動き
+        if (fielders.get('short').init_x < ball.x < fielders.get('second').init_x) {
             super.move(field_, batter, fielders, ball, sbo_counter);
         }
     }
@@ -132,16 +120,59 @@ class First extends Player {
     }
 }
 
+class Second extends Fielder {
+    move(field_, batter, fielders, ball, sbo_counter) {
+        if (fielders.get('short').init_x < ball.x) {
+            super.move(field_, batter, fielders, ball, sbo_counter);
+        }
+    }
+}
+
+class Short extends Fielder {
+    move(field_, batter, fielders, ball, sbo_counter) {
+        if (ball.x < fielders.get('second').init_x) {
+            super.move(field_, batter, fielders, ball, sbo_counter);
+        }
+    }
+}
+
+class Third extends Fielder {
+    move(field_, batter, fielders, ball, sbo_counter) {
+        if (ball.x < field_.items.base_home.x) {
+            super.move(field_, batter, fielders, ball, sbo_counter);
+        }
+    }
+}
+
+class Catcher extends Fielder {
+    move(field_, batter, fielders, ball, sbo_counter) {
+        if (ball.alive && !batter.is_hit) { // バッターが打たなかったとき
+            if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) {
+                ball.alive = false;
+                if (ball.is_strike) {
+                    sbo_counter.strike();
+                } else {
+                    sbo_counter.ball();
+                }
+                fielders.reset();
+            } else { // 投手の球筋を追う
+                this.x += ball.speed * Math.cos(ball.angle * Math.PI / 180);
+            }
+        } else { // バッターが打ったときは、他の野手と同じ動き
+            super.move(field_, batter, fielders, ball, sbo_counter);
+        }
+    }
+}
 
 class Fielders {
     constructor(field_) {
         this.fielders = {
-            pitcher: new Fielder(field_.items.pitcher_mound.x, field_.items.pitcher_mound.y), // ピッチャー
+            pitcher: new Pitcher(field_.items.pitcher_mound.x, field_.items.pitcher_mound.y), // ピッチャー
             catcher: new Catcher(field_.items.base_home.x, field_.items.base_home.y + 30), // キャッチャー
             first: new First(field_.items.base_first.x, field_.items.base_first.y - 50), // 一塁手
-            second: new Fielder(field_.items.base_second.x + 120, field_.items.base_second.y + 10), // 二塁手
-            short: new FielderLeft(field_.items.base_second.x - 120, field_.items.base_second.y + 10), // 遊撃手
-            third: new FielderLeft(field_.items.base_third.x, field_.items.base_third.y - 50), // 三塁手
+            second: new Second(field_.items.base_second.x + 120, field_.items.base_second.y + 10), // 二塁手
+            short: new Short(field_.items.base_second.x - 120, field_.items.base_second.y + 10), // 遊撃手
+            third: new Third(field_.items.base_third.x, field_.items.base_third.y - 50), // 三塁手
         }
         this.someome_has_ball = false;
     }
