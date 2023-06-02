@@ -79,14 +79,19 @@ class Batter extends Player {
             this.bat_top_y = this.y + Math.sin(radian) * this.bat_length;
             
             let ball_top = {x: ball.x + ball.radius * Math.sin(radian), y: ball.y + ball.radius * Math.cos(radian)};
-            let bat_points = {
-                x1: this.x - this.bat_width / 2 * Math.sin(radian), y1: this.y - this.bat_width / 2 * Math.cos(radian),
-                x2: this.x + this.bat_width / 2 * Math.sin(radian), y2: this.y + this.bat_width / 2 * Math.cos(radian),
-                x3: this.bat_top_x + this.bat_width / 2 * Math.sin(radian), y3: this.bat_top_y + this.bat_width / 2 * Math.cos(radian),
-                x4: this.bat_top_x - this.bat_width / 2 * Math.sin(radian), y4: this.bat_top_y - this.bat_width / 2 * Math.cos(radian)
-            }
-            if (pointInTriangle(bat_points.x1, bat_points.y1, bat_points.x2, bat_points.y2, bat_points.x3, bat_points.y3, ball_top.x, ball_top.y) |
-                pointInTriangle(bat_points.x1, bat_points.y1, bat_points.x3, bat_points.y3, bat_points.x4, bat_points.y4, ball_top.x, ball_top.y)) { // 四隅の中に含まれていたら
+            this.bat_points = {
+                x1: this.x - this.bat_width / 2 * Math.sin(radian), y1: this.y + this.bat_width / 2  * Math.cos(radian),
+                x2: this.x + this.bat_width / 2 * Math.sin(radian), y2: this.y - this.bat_width / 2 * Math.cos(radian),
+                x3: this.bat_top_x + this.bat_width / 2 * Math.sin(radian), y3: this.bat_top_y - this.bat_width / 2 * Math.cos(radian),
+                x4: this.bat_top_x - this.bat_width / 2 * Math.sin(radian), y4: this.bat_top_y + this.bat_width / 2 * Math.cos(radian)
+            };
+            let area = 0;
+            area += Math.abs((this.bat_points.x1 - this.bat_points.x4) * (this.bat_points.y1 + this.bat_points.y4) / 2);
+            area += Math.abs((this.bat_points.x4 - this.bat_points.x3) * (this.bat_points.y4 + this.bat_points.y3) / 2);
+            area += Math.abs((this.bat_points.x3 - this.bat_points.x2) * (this.bat_points.y3 + this.bat_points.y2) / 2);
+            area += Math.abs((this.bat_points.x2 - this.bat_points.x1) * (this.bat_points.y2 + this.bat_points.y1) / 2);
+            if (pointInTriangle(this.bat_points.x1, this.bat_points.y1, this.bat_points.x2, this.bat_points.y2, this.bat_points.x3, this.bat_points.y3, ball_top.x, ball_top.y) |
+                pointInTriangle(this.bat_points.x1, this.bat_points.y1, this.bat_points.x3, this.bat_points.y3, this.bat_points.x4, this.bat_points.y4, ball_top.x, ball_top.y)) { // 四隅の中に含まれていたら
                 this.is_hit = true;
                 if (this.swing_count == 0) { // バットが静止していたら（バント）
                     ball.speed = 0.5 + Math.random() * 0.5;
@@ -103,7 +108,6 @@ class Batter extends Player {
                 var dx = ball.x - this.bat_top_x;
                 var dy = ball.y - this.bat_top_y;
                 ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
-                console.log(ball.angle)
             }
         }
     }
@@ -135,13 +139,17 @@ class Batter extends Player {
     }
 
     draw() {
+        super.draw();
         if (!this. is_hit) {
             // 薄茶色のバットを描画
-            stroke(222, 184, 135);
-            strokeWeight(8);
-            line(this.x, this.y, this.bat_top_x,this.bat_top_y);
+            noStroke();
+            fill(222, 184, 135)
+            // バットの本体を描画
+            triangle(this.bat_points.x1, this.bat_points.y1, this.bat_points.x2, this.bat_points.y2, this.bat_points.x3, this.bat_points.y3);
+            triangle(this.bat_points.x1, this.bat_points.y1, this.bat_points.x3, this.bat_points.y3, this.bat_points.x4, this.bat_points.y4);
+            // バットの先端を描画
+            ellipse(this.bat_top_x, this.bat_top_y, this.bat_width, this.bat_width);
         }
-        super.draw();
     }
 }
 
