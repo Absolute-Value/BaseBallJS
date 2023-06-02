@@ -109,7 +109,7 @@ class Field {
             dirt_third: new DirtDiamond(pos.base_third.x + 15, pos.base_third.y - 8, 50, DIRT_COLOR), // 3塁周りの土
             line_right: new Line(pos.base_home.x, pos.base_home.y, pos.base_home.x - 400, pos.base_home.y - 400), // ホームから1塁への線
             line_left: new Line(pos.base_home.x, pos.base_home.y, pos.base_home.x + 400, pos.base_home.y - 400), // ホームから3塁への線
-            base_home_dirt: new Box(pos.base_home.x, pos.base_home.y-8, 24, 24, null, DIRT_COLOR), // ホームベース下の土（線を消すため）
+            base_home_hidden_dirt: new Box(pos.base_home.x, pos.base_home.y-8, 24, 24, null, DIRT_COLOR), // ホームベース下の土（線を消すため）
             batter_box_left: new Box(pos.base_home.x-24, pos.base_home.y-8, 24, 36, 'white', DIRT_COLOR),// color='white'), // バッターボックス
             batter_box_right: new Box(pos.base_home.x+24, pos.base_home.y-8, 24, 36, 'white', DIRT_COLOR),// color='white'), // バッターボックス
             base_home: new HomeBase(pos.base_home.x, pos.base_home.y, 8), // ホーム
