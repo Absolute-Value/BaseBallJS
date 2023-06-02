@@ -71,8 +71,8 @@ class Batter extends Player {
         }
     }
 
-    move(field_) {
-        if (this.is_hit) {
+    move(field_, ball) {
+        if (this.is_hit & !ball.is_foul) {
             if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
             var dx = field_.items.base_first.x - this.x;
             var dy = field_.items.base_first.y - field_.items.base_first.radius - this.y;
@@ -95,6 +95,7 @@ class Batter extends Player {
         this.y += this.vy;
         this.vx = 0;
         this.vy = 0;
+        this.hitting(ball);
     }
 
     draw() {

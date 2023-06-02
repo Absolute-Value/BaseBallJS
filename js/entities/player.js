@@ -90,7 +90,9 @@ class First extends Player {
         if (batter.is_hit && ball.alive) {
             if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) {
                 ball.alive = false;
-                if (batter.distance > 1) {
+                if (ball.is_foul) {
+                    sbo_counter.foul();
+                } else if (batter.distance > 1) {
                     sbo_counter.out();
                 } else {
                     sbo_counter.reset();

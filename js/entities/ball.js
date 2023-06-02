@@ -15,6 +15,8 @@ class Ball {
         this.alive = true;
         this.dead_count = Math.floor(Math.random() * 60) + 60;
         this.is_strike = false
+        this.is_fair = false;
+        this.is_foul = false;
     }
 
     move(field_) {
@@ -37,6 +39,20 @@ class Ball {
             if (field_.items.base_home.x - field_.items.base_home.radius < this.x + this.radius && this.x - this.radius < field_.items.base_home.x + field_.items.base_home.radius &&
                 field_.items.base_home.y - field_.items.base_home.radius < this.y + this.radius && this.y - this.radius < field_.items.base_home.y) {
                 this.is_strike = true;
+            }
+            // フェアゾーンに入っているかの判定
+            if (triangleCollision(field_.items.base_first.x, field_.items.base_first.y, field_.items.base_third.x, field_.items.base_third.y, field_.items.line_right.x2, field_.items.line_right.y2, this.x, this.y) | 
+                triangleCollision(field_.items.base_first.x, field_.items.base_first.y, field_.items.base_third.x, field_.items.base_third.y, field_.items.line_left.x2, field_.items.line_left.y2, this.x, this.y)) {
+                this.is_fair = true;
+                console.log("fair");
+            }
+            // ファウルゾーンに入っているかの判定
+            if (!this.is_fair & 
+                (triangleCollision(field_.items.line_right.x1, field_.items.line_right.y1, field_.items.line_right.x2, field_.items.line_right.y2, field_.items.line_right.x2, field_.items.line_right.y1, this.x, this.y) |
+                 triangleCollision(field_.items.line_left.x1, field_.items.line_left.y1, field_.items.line_left.x2, field_.items.line_left.y2, field_.items.line_left.x2, field_.items.line_left.y1, this.x, this.y)) 
+                & !circleCollision(this.x, this.y, this.radius, field_.items.base_home_dirt.x, field_.items.base_home_dirt.y, field_.items.base_home_dirt.radius)) {
+                this.is_foul = true;
+                console.log("fowl");
             }
         } else {
             this.dead_count -= 1;
