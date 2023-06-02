@@ -21,14 +21,16 @@ class Ball {
         if (this.alive) {
             let vx = this.speed * Math.cos(this.angle * Math.PI / 180);
             this.x += vx
-            if (this.x + vx < 0 | CANVAS_WIDTH < this.x + vx) {
+            if (this.x + vx < 0 | CANVAS_WIDTH < this.x + vx) { // 左右の壁に当たったら反射
                 this.angle = 180 - this.angle;
+                this.speed *= 0.5;
             }
 
             let vy = this.speed * Math.sin(this.angle * Math.PI / 180);
             this.y += vy
-            if (this.y + vy < 0 | CANVAS_HEIGHT < this.y + vy) {
+            if (this.y + vy < 0 | CANVAS_HEIGHT < this.y + vy) { // 上下の壁に当たったら反射
                 this.angle = - this.angle;
+                this.speed *= 0.5;
             }
 
             // ストライクに入っているかの判定
