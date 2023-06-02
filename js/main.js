@@ -37,7 +37,7 @@ function draw() {
     batter.move(field_); // バッターを移動
     batter.hitting(ball); // バッターがボールを打つ
     ball.move(field_); // ボールを移動
-    fielders.move(batter, ball, sbo_counter); // 野手を移動
+    fielders.move(field_, batter, ball, sbo_counter); // 野手を移動
 
     field_.draw(); // フィールドを描画
     batter.draw(); // バッターを描画
