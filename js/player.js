@@ -64,11 +64,10 @@ class Batter extends Player {
 
     hitting(ball) { // バットに当たったボールを跳ね返す
         if (!this.is_hit) {
-            // バットの四隅を計算
             let radian = this.angle * (Math.PI/180);
             this.bat_top_x = this.x + Math.cos(radian) * this.bat_length;
             this.bat_top_y = this.y + Math.sin(radian) * this.bat_length;
-            
+            // バットの四隅を計算
             this.ball_top = {x: ball.x - ball.radius * Math.sin(radian), y: ball.y + ball.radius * Math.cos(radian)};
             this.bat_points = {
                 x1: this.x - this.bat_width / 2 * Math.sin(radian), y1: this.y + this.bat_width / 2  * Math.cos(radian),
@@ -76,24 +75,26 @@ class Batter extends Player {
                 x3: this.bat_top_x + this.bat_width / 2 * Math.sin(radian), y3: this.bat_top_y - this.bat_width / 2 * Math.cos(radian),
                 x4: this.bat_top_x - this.bat_width / 2 * Math.sin(radian), y4: this.bat_top_y + this.bat_width / 2 * Math.cos(radian)
             };
-            if (triangleCollision(this.bat_points.x1, this.bat_points.y1, this.bat_points.x2, this.bat_points.y2, this.bat_points.x3, this.bat_points.y3, this.ball_top.x, this.ball_top.y) |
-                triangleCollision(this.bat_points.x1, this.bat_points.y1, this.bat_points.x3, this.bat_points.y3, this.bat_points.x4, this.bat_points.y4, this.ball_top.x, this.ball_top.y)) { // 四隅の中に含まれていたら
-                this.is_hit = true;
-                if (this.swing_count == 0) { // バットが静止していたら（バント）
-                    ball.speed = 0.5 + Math.random() * 0.5;
-                    ball.angle = this.angle - ball.angle;
-                } else { // バットが動いていたら
-                    ball.speed = this.swing_count;
-                    ball.angle = this.angle - 90;
+            if (ball.alive) {
+                if (triangleCollision(this.bat_points.x1, this.bat_points.y1, this.bat_points.x2, this.bat_points.y2, this.bat_points.x3, this.bat_points.y3, this.ball_top.x, this.ball_top.y) |
+                    triangleCollision(this.bat_points.x1, this.bat_points.y1, this.bat_points.x3, this.bat_points.y3, this.bat_points.x4, this.bat_points.y4, this.ball_top.x, this.ball_top.y)) { // 四隅の中に含まれていたら
+                    this.is_hit = true;
+                    if (this.swing_count == 0) { // バットが静止していたら（バント）
+                        ball.speed = 0.5 + Math.random() * 0.5;
+                        ball.angle = this.angle - ball.angle;
+                    } else { // バットが動いていたら
+                        ball.speed = this.swing_count;
+                        ball.angle = this.angle - 90;
+                    }
+                } else if (circleCollision(ball.x, ball.y, ball.radius, this.bat_top_x, this.bat_top_y, this.bat_width)) { // バットの先端に当たったら
+                    this.is_hit = true;
+                    if (this.swing_count == 0) { // バットが静止していたら（バント）
+                        ball.speed = 0.5 + Math.random() * 0.5;
+                    }
+                    var dx = ball.x - this.bat_top_x;
+                    var dy = ball.y - this.bat_top_y;
+                    ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
                 }
-            } else if (circleCollision(ball.x, ball.y, ball.radius, this.bat_top_x, this.bat_top_y, this.bat_width)) { // バットの先端に当たったら
-                this.is_hit = true;
-                if (this.swing_count == 0) { // バットが静止していたら（バント）
-                    ball.speed = 0.5 + Math.random() * 0.5;
-                }
-                var dx = ball.x - this.bat_top_x;
-                var dy = ball.y - this.bat_top_y;
-                ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
             }
         }
     }
@@ -129,7 +130,7 @@ class Batter extends Player {
         if (!this. is_hit) {
             // 薄茶色のバットを描画
             noStroke();
-            fill(222, 184, 135)
+            fill(222, 184, 135);
             // バットの本体を描画
             triangle(this.bat_points.x1, this.bat_points.y1, this.bat_points.x2, this.bat_points.y2, this.bat_points.x3, this.bat_points.y3);
             triangle(this.bat_points.x1, this.bat_points.y1, this.bat_points.x3, this.bat_points.y3, this.bat_points.x4, this.bat_points.y4);
@@ -165,7 +166,7 @@ class Fielder extends Player {
                     var dy = field_.items.base_first.y - field_.items.base_first.radius*2 - this.y;
                     ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
                 }
-            } if(fielders.someome_has_ball) {
+            } else if (fielders.someome_has_ball) {
                 this.speed = 0;
             } else { // 誰もボールを拾っていないときは、ボールを追いかける
                 if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
