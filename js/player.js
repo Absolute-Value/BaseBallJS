@@ -78,20 +78,15 @@ class Batter extends Player {
             this.bat_top_x = this.x + Math.cos(radian) * this.bat_length;
             this.bat_top_y = this.y + Math.sin(radian) * this.bat_length;
             
-            let ball_top = {x: ball.x + ball.radius * Math.sin(radian), y: ball.y + ball.radius * Math.cos(radian)};
+            this.ball_top = {x: ball.x - ball.radius * Math.sin(radian), y: ball.y + ball.radius * Math.cos(radian)};
             this.bat_points = {
                 x1: this.x - this.bat_width / 2 * Math.sin(radian), y1: this.y + this.bat_width / 2  * Math.cos(radian),
                 x2: this.x + this.bat_width / 2 * Math.sin(radian), y2: this.y - this.bat_width / 2 * Math.cos(radian),
                 x3: this.bat_top_x + this.bat_width / 2 * Math.sin(radian), y3: this.bat_top_y - this.bat_width / 2 * Math.cos(radian),
                 x4: this.bat_top_x - this.bat_width / 2 * Math.sin(radian), y4: this.bat_top_y + this.bat_width / 2 * Math.cos(radian)
             };
-            let area = 0;
-            area += Math.abs((this.bat_points.x1 - this.bat_points.x4) * (this.bat_points.y1 + this.bat_points.y4) / 2);
-            area += Math.abs((this.bat_points.x4 - this.bat_points.x3) * (this.bat_points.y4 + this.bat_points.y3) / 2);
-            area += Math.abs((this.bat_points.x3 - this.bat_points.x2) * (this.bat_points.y3 + this.bat_points.y2) / 2);
-            area += Math.abs((this.bat_points.x2 - this.bat_points.x1) * (this.bat_points.y2 + this.bat_points.y1) / 2);
-            if (pointInTriangle(this.bat_points.x1, this.bat_points.y1, this.bat_points.x2, this.bat_points.y2, this.bat_points.x3, this.bat_points.y3, ball_top.x, ball_top.y) |
-                pointInTriangle(this.bat_points.x1, this.bat_points.y1, this.bat_points.x3, this.bat_points.y3, this.bat_points.x4, this.bat_points.y4, ball_top.x, ball_top.y)) { // 四隅の中に含まれていたら
+            if (pointInTriangle(this.bat_points.x1, this.bat_points.y1, this.bat_points.x2, this.bat_points.y2, this.bat_points.x3, this.bat_points.y3, this.ball_top.x, this.ball_top.y) |
+                pointInTriangle(this.bat_points.x1, this.bat_points.y1, this.bat_points.x3, this.bat_points.y3, this.bat_points.x4, this.bat_points.y4, this.ball_top.x, this.ball_top.y)) { // 四隅の中に含まれていたら
                 this.is_hit = true;
                 if (this.swing_count == 0) { // バットが静止していたら（バント）
                     ball.speed = 0.5 + Math.random() * 0.5;
