@@ -34,6 +34,16 @@ class ScoreCounter extends Counter {
             text(this.team_name[i], this.x + this.width / 3, this.y + (i*2+3)*this.height/3/2);
             text(this.scores[i], this.x + this.width / 3 * 2, this.y + (i*2+3)*this.height/3/2);
         }
+        fill('red');
+        noStroke();
+        rect(this.x + this.width/10, this.y + (this.turn+1)*this.height/3 + this.height/24, this.width/10, this.height/4);
+    }
+
+    turn_change() {
+        this.turn = (this.turn + 1) % 2;
+        if (this.turn == 0) {
+            this.inning += 1;
+        }
     }
 }
 
@@ -42,9 +52,11 @@ class SBOCounter extends Counter {
         super(x, y, width, height);
         this.counts = {'S': 0, 'B': 0, 'O': 0};
         this.colors = {'S': 'yellow', 'B': 'green', 'O': 'red'};
+        this.score_counter = new ScoreCounter();
     }
 
     draw() {
+        this.score_counter.draw();
         super.draw();
         // this.countsのキーと値を順番に取り出して、キーを白で縦に並べて表示する
         // キーの横に値の数だけ円を表示する
@@ -87,7 +99,8 @@ class SBOCounter extends Counter {
         this.counts['O'] += 1;
         this.reset();
         if (this.counts['O'] >= 3) {
-            this,this.counts['O'] = 0;
+            this.score_counter.turn_change();
+            this.counts['O'] = 0;
         }
     }
 
