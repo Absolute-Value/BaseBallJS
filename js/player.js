@@ -26,15 +26,6 @@ class Player {
     }
 }
 
-// 与えられた4つの点を利用して、与えられた点(cx, cy)が四角形の内部にあるかどうかを検出する
-// 参考: https://en.wikipedia.org/wiki/Point_in_polygon
-function pointInTriangle(x1, y1, x2, y2, x3, y3, px, py) {
-    var d1 = (px - x2) * (y1 - y2) - (x1 - x2) * (py - y2);
-    var d2 = (px - x3) * (y2 - y3) - (x2 - x3) * (py - y3);
-    var d3 = (px - x1) * (y3 - y1) - (x3 - x1) * (py - y1);
-    return (d1 >= 0 && d2 >= 0 && d3 >= 0) || (d1 <= 0 && d2 <= 0 && d3 <= 0);
-}
-
 class Batter extends Player {
     constructor(init_x, init_y, radius=6, color='blue') {
         super(init_x, init_y, radius, color);
@@ -85,8 +76,8 @@ class Batter extends Player {
                 x3: this.bat_top_x + this.bat_width / 2 * Math.sin(radian), y3: this.bat_top_y - this.bat_width / 2 * Math.cos(radian),
                 x4: this.bat_top_x - this.bat_width / 2 * Math.sin(radian), y4: this.bat_top_y + this.bat_width / 2 * Math.cos(radian)
             };
-            if (pointInTriangle(this.bat_points.x1, this.bat_points.y1, this.bat_points.x2, this.bat_points.y2, this.bat_points.x3, this.bat_points.y3, this.ball_top.x, this.ball_top.y) |
-                pointInTriangle(this.bat_points.x1, this.bat_points.y1, this.bat_points.x3, this.bat_points.y3, this.bat_points.x4, this.bat_points.y4, this.ball_top.x, this.ball_top.y)) { // 四隅の中に含まれていたら
+            if (triangleCollision(this.bat_points.x1, this.bat_points.y1, this.bat_points.x2, this.bat_points.y2, this.bat_points.x3, this.bat_points.y3, this.ball_top.x, this.ball_top.y) |
+                triangleCollision(this.bat_points.x1, this.bat_points.y1, this.bat_points.x3, this.bat_points.y3, this.bat_points.x4, this.bat_points.y4, this.ball_top.x, this.ball_top.y)) { // 四隅の中に含まれていたら
                 this.is_hit = true;
                 if (this.swing_count == 0) { // バットが静止していたら（バント）
                     ball.speed = 0.5 + Math.random() * 0.5;
@@ -95,7 +86,7 @@ class Batter extends Player {
                     ball.speed = this.swing_count;
                     ball.angle = this.angle - 90;
                 }
-            } else if ((ball.x-this.bat_top_x)**2 + (ball.y-this.bat_top_y)**2 <= (ball.radius+this.bat_width)**2) { // バットの先端に当たったら
+            } else if (circleCollision(ball.x, ball.y, ball.radius, this.bat_top_x, this.bat_top_y, this.bat_width)) { // バットの先端に当たったら
                 this.is_hit = true;
                 if (this.swing_count == 0) { // バットが静止していたら（バント）
                     ball.speed = 0.5 + Math.random() * 0.5;
@@ -155,7 +146,7 @@ class Fielder extends Player {
 
     move(field_, batter, fielders, ball, sbo_counter) {
         if (batter.is_hit && ball.alive) {
-            if ((this.x - ball.x) ** 2 + (this.y - ball.y) ** 2 <= (this.radius + ball.radius) ** 2) { // ボールを拾ったら、ファーストへ送球
+            if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) { // ボールを拾ったら、ファーストへ送球
                 ball.speed = 4
                 var dx = field_.items.base_first.x - field_.items.base_first.radius - this.x;
                 var dy = field_.items.base_first.y - field_.items.base_first.radius*2 - this.y;
@@ -174,7 +165,7 @@ class Fielder extends Player {
 class Catcher extends Fielder {
     move(field_, batter, fielders, ball, sbo_counter) {
         if (ball.alive && !batter.is_hit) { // バッターが打たなかったとき
-            if ((this.x - ball.x) ** 2 + (this.y - ball.y) ** 2 <= (this.radius + ball.radius) ** 2) {
+            if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) {
                 ball.alive = false;
                 if (ball.is_strike) {
                     sbo_counter.strike();
@@ -194,7 +185,7 @@ class Catcher extends Fielder {
 class First extends Player {
     move(field_, batter, fielders, ball, sbo_counter) {
         if (batter.is_hit && ball.alive) {
-            if ((this.x - ball.x) ** 2 + (this.y - ball.y) ** 2 <= (this.radius + ball.radius) ** 2) {
+            if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) {
                 ball.alive = false;
                 if (batter.distance > 1) {
                     sbo_counter.out();
