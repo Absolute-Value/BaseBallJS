@@ -99,7 +99,7 @@ class First extends Player {
                 batter.reset();
                 fielders.reset();
             } else {
-                if (ball.is_foul) {
+                if (ball.is_foul && field_.items.base_home.x < ball.x) {
                     if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
                     var dx = ball.x - this.x;
                     var dy = ball.y - this.y;
@@ -158,7 +158,7 @@ class Catcher extends Fielder {
             } else { // 投手の球筋を追う
                 this.x += ball.speed * Math.cos(ball.angle * Math.PI / 180);
             }
-        } else { // バッターが打ったときは、他の野手と同じ動き
+        } else if ((field_.items.base_home.y+field_.items.base_second.y)/2 < ball.y) { // バッターが打ったときは、他の野手と同じ動き
             super.move(field_, batter, fielders, ball, sbo_counter);
         }
     }
