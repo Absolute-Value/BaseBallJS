@@ -41,15 +41,15 @@ class Ball {
                 this.is_strike = true;
             }
             // フェアゾーンに入っているかの判定
-            if (triangleCollision(field_.items.base_first.x, field_.items.base_first.y, field_.items.base_third.x, field_.items.base_third.y, field_.items.line_right.x2, field_.items.line_right.y2, this.x, this.y) | 
+            if (triangleCollision(field_.items.base_first.x, field_.items.base_first.y, field_.items.base_third.x, field_.items.base_third.y, field_.items.line_right.x2, field_.items.line_right.y2, this.x, this.y) || 
                 triangleCollision(field_.items.base_first.x, field_.items.base_first.y, field_.items.base_third.x, field_.items.base_third.y, field_.items.line_left.x2, field_.items.line_left.y2, this.x, this.y)) {
                 this.is_fair = true;
             }
             // ファウルゾーンに入っているかの判定
-            if (!this.is_fair & 
-                (triangleCollision(field_.items.line_right.x1, field_.items.line_right.y1, field_.items.line_right.x2, field_.items.line_right.y2, field_.items.line_right.x2, field_.items.line_right.y1, this.x, this.y) |
+            if (!this.is_fair && 
+                (triangleCollision(field_.items.line_right.x1, field_.items.line_right.y1, field_.items.line_right.x2, field_.items.line_right.y2, field_.items.line_right.x2, field_.items.line_right.y1, this.x, this.y) ||
                  triangleCollision(field_.items.line_left.x1, field_.items.line_left.y1, field_.items.line_left.x2, field_.items.line_left.y2, field_.items.line_left.x2, field_.items.line_left.y1, this.x, this.y)) 
-                & !circleCollision(this.x, this.y, this.radius, field_.items.dirt_home.x, field_.items.dirt_home.y, field_.items.dirt_home.radius)) {
+                && !circleCollision(this.x, this.y, this.radius, field_.items.dirt_home.x, field_.items.dirt_home.y, field_.items.dirt_home.radius)) {
                 this.is_foul = true;
                 console.log("fowl");
             }
