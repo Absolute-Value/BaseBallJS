@@ -73,6 +73,7 @@ class Batter extends Player {
 
     move(field_, ball) {
         if (this.is_hit && !ball.is_foul) {
+            // 一塁に向かって走る
             if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
             var dx = field_.items.base_first.x - this.x;
             var dy = field_.items.base_first.y - field_.items.base_first.radius - this.y;
@@ -82,6 +83,11 @@ class Batter extends Player {
                 this.vy = dy / this.distance * this.speed;
             }
         } else {
+            // バットを振ったストライクを判定
+            if (circleCollision(ball.x, ball.y, ball.radius, field_.items.dirt_home.x, field_.items.dirt_home.y, field_.items.dirt_home.radius) && -60 < this.angle && this.angle < 60) { // ホームベースのダートサークルに入っていて、バットが振られていたら
+                ball.is_strike = true;
+            }
+            // バットがバッターボックスから出ないようにする
             if ((this.x - this.radius <= field_.items.batter_box_left.center_x - field_.items.batter_box_left.width / 2 && this.vx < 0) | 
                 (field_.items.batter_box_left.center_x + field_.items.batter_box_left.width / 2 <= this.x + this.radius && this.vx > 0)) {
                 this.vx = 0;

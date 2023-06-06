@@ -7,7 +7,6 @@ Copilotを試してたら楽しくなって作ってしまった[コチラ](http
 * [非常用リンク](https://absolute-value.github.io/BaseBallJS/)
 
 ## 追加予定
-- スイングでのストライク判定
 - ランナー
 - ランナーの進塁と得点
 - フェンス
