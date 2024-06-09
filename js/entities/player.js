@@ -249,6 +249,80 @@ class Fielders {
     }
 }
 
+class FirstRunner extends Player {
+    constructor(init_x, init_y, radius=6, color='blue') {
+        super(init_x, init_y, radius, color);
+    }
+
+    move(field_, runners) {
+        if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
+        var dx = field_.items.base_second.x - this.x;
+        var dy = field_.items.base_second.y - field_.items.base_second.radius - this.y;
+        this.distance = Math.sqrt(dx ** 2 + dy ** 2);
+        if (this.distance >= 1) {
+            this.vx = dx / this.distance * this.speed;
+            this.vy = dy / this.distance * this.speed;
+        } else {
+            runners.is_runner.second = true;
+            runners.is_runner.first = false;
+            this.reset();
+        }
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx = 0;
+        this.vy = 0;
+    }
+}
+
+class SecondRunner extends Player {
+    constructor(init_x, init_y, radius=6, color='blue') {
+        super(init_x, init_y, radius, color);
+    }
+
+    move(field_, runners) {
+        if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
+        var dx = field_.items.base_third.x - this.x;
+        var dy = field_.items.base_third.y - field_.items.base_third.radius - this.y;
+        this.distance = Math.sqrt(dx ** 2 + dy ** 2);
+        if (this.distance >= 1) {
+            this.vx = dx / this.distance * this.speed;
+            this.vy = dy / this.distance * this.speed;
+        } else {
+            runners.is_runner.third = true;
+            runners.is_runner.second = false;
+            this.reset();
+        }
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx = 0;
+        this.vy = 0;
+    }
+}
+
+class ThirdRunner extends Player {
+    constructor(init_x, init_y, radius=6, color='blue') {
+        super(init_x, init_y, radius, color);
+    }
+
+    move(field_, runners) {
+        if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
+        var dx = field_.items.base_home.x - this.x;
+        var dy = field_.items.base_home.y - field_.items.base_home.radius - this.y;
+        this.distance = Math.sqrt(dx ** 2 + dy ** 2);
+        if (this.distance >= 1) {
+            this.vx = dx / this.distance * this.speed;
+            this.vy = dy / this.distance * this.speed;
+        } else {
+            runners.is_runner.third = false;
+            this.reset();
+        }
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx = 0;
+        this.vy = 0;
+    }
+}
+
 class Runners {
     constructor(field_) {
         this.is_runner = {
@@ -257,9 +331,17 @@ class Runners {
             third: false,
         }
         this.runners = {
-            first: new Player(field_.items.base_first.x-6, field_.items.base_first.y-12, 6, 'blue'), // 一塁ランナー
-            second: new Player(field_.items.base_second.x-6, field_.items.base_second.y, 6, 'blue'), // 二塁ランナー
-            third: new Player(field_.items.base_third.x+6, field_.items.base_third.y, 6, 'blue'), // 三塁ランナー
+            first: new FirstRunner(field_.items.base_first.x-6, field_.items.base_first.y-12, 6, 'blue'), // 一塁ランナー
+            second: new SecondRunner(field_.items.base_second.x-6, field_.items.base_second.y, 6, 'blue'), // 二塁ランナー
+            third: new ThirdRunner(field_.items.base_third.x+6, field_.items.base_third.y, 6, 'blue'), // 三塁ランナー
+        }
+    }
+
+    move(field_) {
+        for (let key in this.runners) {
+            if (this.is_runner[key]) {
+                this.runners[key].move(field_, this);
+            }
         }
     }
 
