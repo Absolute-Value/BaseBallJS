@@ -60,8 +60,19 @@ class Fielder extends Player {
                         ball.speed = 0;
                     } else { // 一定時間ボールを持ったら、ファーストへボールを投げる
                         ball.speed = 4
-                        var dx = field_.items.base_first.x - field_.items.base_first.radius - this.x;
-                        var dy = field_.items.base_first.y - field_.items.base_first.radius*2 - this.y;
+                        if (runners.is_runner.third) { // 三塁にランナーがいるとき、ホームへボールを投げる
+                            var dx = field_.items.base_home.x - this.x;
+                            var dy = field_.items.base_home.y - this.y;
+                        } else if (runners.is_runner.second) { // 二塁にランナーがいるとき、サードへボールを投げる
+                            var dx = field_.items.base_third.x + field_.items.base_third.radius - this.x;
+                            var dy = field_.items.base_third.y - field_.items.base_third.radius*2 - this.y;
+                        } else if (runners.is_runner.first) { // 一塁にランナーがいるとき、セカンドへボールを投げる
+                            var dx = field_.items.base_second.x - this.x;
+                            var dy = field_.items.base_second.y - field_.items.base_second.radius - this.y;
+                        } else { // ランナーがいないとき、ファーストへボールを投げる
+                            var dx = field_.items.base_first.x - field_.items.base_first.radius - this.x;
+                            var dy = field_.items.base_first.y - field_.items.base_first.radius*2 - this.y;
+                        }
                         ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
                     }
                 }
@@ -94,7 +105,6 @@ class First extends Player {
                 if (batter.distance > 1) {
                     sbo_counter.out();
                 } else {
-                    runners.is_runner.first = true;
                     sbo_counter.reset();
                 }
                 batter.reset();
@@ -123,16 +133,41 @@ class First extends Player {
 
 class Second extends Fielder {
     move(field_, batter, runners, fielders, ball, sbo_counter) {
-        if (fielders.get('short').init_x < ball.x) {
+        if (ball.x > field_.items.base_second.x) {
             super.move(field_, batter, runners, fielders, ball, sbo_counter);
+        } else {
+            if (batter.is_hit && ball.alive) {
+                if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
+                var dx = field_.items.base_second.x - this.x;
+                var dy = field_.items.base_second.y - field_.items.base_second.radius - this.y;
+                var distance = Math.sqrt(dx ** 2 + dy ** 2);
+                if (distance > 1) {
+                    this.angle = Math.acos(dx / distance) * 180 / Math.PI;
+                    this.x += this.speed * Math.cos(this.angle * Math.PI / 180);
+                    this.y -= this.speed * Math.sin(this.angle * Math.PI / 180);
+                }
+            }
+        
         }
     }
 }
 
 class Short extends Fielder {
     move(field_, batter, runners, fielders, ball, sbo_counter) {
-        if (ball.x < fielders.get('second').init_x) {
+        if (ball.x < field_.items.base_second.x) {
             super.move(field_, batter, runners, fielders, ball, sbo_counter);
+        } else {
+            if (batter.is_hit && ball.alive) {
+                if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
+                var dx = field_.items.base_second.x - this.x;
+                var dy = field_.items.base_second.y - field_.items.base_second.radius - this.y;
+                var distance = Math.sqrt(dx ** 2 + dy ** 2);
+                if (distance > 1) {
+                    this.angle = Math.acos(dx / distance) * 180 / Math.PI;
+                    this.x += this.speed * Math.cos(this.angle * Math.PI / 180);
+                    this.y -= this.speed * Math.sin(this.angle * Math.PI / 180);
+                }
+            }
         }
     }
 }
@@ -141,6 +176,18 @@ class Third extends Fielder {
     move(field_, batter, runners, fielders, ball, sbo_counter) {
         if (ball.x < field_.items.base_home.x) {
             super.move(field_, batter, runners, fielders, ball, sbo_counter);
+        } else {
+            if (batter.is_hit && ball.alive) {
+                if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
+                var dx = field_.items.base_third.x + field_.items.base_first.radius - this.x;
+                var dy = field_.items.base_third.y - field_.items.base_third.radius*2 - this.y;
+                var distance = Math.sqrt(dx ** 2 + dy ** 2);
+                if (distance > 1) {
+                    this.angle = Math.acos(dx / distance) * 180 / Math.PI;
+                    this.x += this.speed * Math.cos(this.angle * Math.PI / 180);
+                    this.y += this.speed * Math.sin(this.angle * Math.PI / 180);
+                }
+            }
         }
     }
 }

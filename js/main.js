@@ -34,7 +34,7 @@ function draw() {
         batter.swing_back();
     }
 
-    batter.move(field_, ball); // バッターを移動
+    batter.move(field_, runners, ball); // バッターを移動
     ball.move(field_); // ボールを移動
     fielders.move(field_, batter, runners, ball, sbo_counter); // 野手を移動
 

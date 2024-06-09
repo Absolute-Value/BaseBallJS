@@ -71,7 +71,7 @@ class Batter extends Player {
         }
     }
 
-    move(field_, ball) {
+    move(field_, runners, ball) {
         if (this.is_hit && !ball.is_foul) {
             // 一塁に向かって走る
             if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
@@ -81,6 +81,8 @@ class Batter extends Player {
             if (this.distance >= 1) {
                 this.vx = dx / this.distance * this.speed;
                 this.vy = dy / this.distance * this.speed;
+            } else {
+                runners.is_runner.first = true;
             }
         } else {
             // バットを振ったストライクを判定
