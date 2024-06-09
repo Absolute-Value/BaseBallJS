@@ -7,6 +7,7 @@ function setup() {
     canvas.parent('GameCanvas');
     field_ = new Field();
     batter = new Batter(field_.items.base_home.x - 24, field_.items.base_home.y - 8); // バッターを作成
+    runners = new Runners(field_); // ランナーを作成
     fielders = new Fielders(field_); // 野手を作成
     ball = new Ball(fielders.get('pitcher').x, fielders.get('pitcher').y); // ボールを作成
     sbo_counter = new SBOCounter();
@@ -35,10 +36,11 @@ function draw() {
 
     batter.move(field_, ball); // バッターを移動
     ball.move(field_); // ボールを移動
-    fielders.move(field_, batter, ball, sbo_counter); // 野手を移動
+    fielders.move(field_, batter, runners, ball, sbo_counter); // 野手を移動
 
     field_.draw(); // フィールドを描画
     batter.draw(); // バッターを描画
+    runners.draw(); // ランナーを描画
     fielders.draw(); // 野手を描画
     ball.draw(); // ボールを描画
     sbo_counter.draw(); // SBOカウンターを描画

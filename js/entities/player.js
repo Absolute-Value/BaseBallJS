@@ -38,7 +38,7 @@ class Fielder extends Player {
         this.hold_count = this.hold_time;
     }
 
-    move(field_, batter, fielders, ball, sbo_counter) {
+    move(field_, batter, runners, fielders, ball, sbo_counter) {
         if (batter.is_hit && ball.alive) {
             if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) { // ボールを拾ったら
                 if (ball.is_foul) {
@@ -79,21 +79,22 @@ class Fielder extends Player {
 }
 
 class Pitcher extends Fielder {
-    move(field_, batter, fielders, ball, sbo_counter) {
+    move(field_, batter, runners, fielders, ball, sbo_counter) {
         if (fielders.get('short').init_x < ball.x < fielders.get('second').init_x) {
-            super.move(field_, batter, fielders, ball, sbo_counter);
+            super.move(field_, batter, runners, fielders, ball, sbo_counter);
         }
     }
 }
 
 class First extends Player {
-    move(field_, batter, fielders, ball, sbo_counter) {
+    move(field_, batter, runners, fielders, ball, sbo_counter) {
         if (batter.is_hit && ball.alive) {
             if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) {
                 ball.alive = false;
                 if (batter.distance > 1) {
                     sbo_counter.out();
                 } else {
+                    runners.is_runner.first = true;
                     sbo_counter.reset();
                 }
                 batter.reset();
@@ -121,31 +122,31 @@ class First extends Player {
 }
 
 class Second extends Fielder {
-    move(field_, batter, fielders, ball, sbo_counter) {
+    move(field_, batter, runners, fielders, ball, sbo_counter) {
         if (fielders.get('short').init_x < ball.x) {
-            super.move(field_, batter, fielders, ball, sbo_counter);
+            super.move(field_, batter, runners, fielders, ball, sbo_counter);
         }
     }
 }
 
 class Short extends Fielder {
-    move(field_, batter, fielders, ball, sbo_counter) {
+    move(field_, batter, runners, fielders, ball, sbo_counter) {
         if (ball.x < fielders.get('second').init_x) {
-            super.move(field_, batter, fielders, ball, sbo_counter);
+            super.move(field_, batter, runners, fielders, ball, sbo_counter);
         }
     }
 }
 
 class Third extends Fielder {
-    move(field_, batter, fielders, ball, sbo_counter) {
+    move(field_, batter, runners, fielders, ball, sbo_counter) {
         if (ball.x < field_.items.base_home.x) {
-            super.move(field_, batter, fielders, ball, sbo_counter);
+            super.move(field_, batter, runners, fielders, ball, sbo_counter);
         }
     }
 }
 
 class Catcher extends Fielder {
-    move(field_, batter, fielders, ball, sbo_counter) {
+    move(field_, batter, runners, fielders, ball, sbo_counter) {
         if (ball.alive && !batter.is_hit) { // バッターが打たなかったとき
             if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) {
                 ball.alive = false;
@@ -159,7 +160,7 @@ class Catcher extends Fielder {
                 this.x += ball.speed * Math.cos(ball.angle * Math.PI / 180);
             }
         } else if ((field_.items.base_home.y+field_.items.base_second.y)/2 < ball.y) { // バッターが打ったときは、他の野手と同じ動き
-            super.move(field_, batter, fielders, ball, sbo_counter);
+            super.move(field_, batter, runners, fielders, ball, sbo_counter);
         }
     }
 }
@@ -188,15 +189,38 @@ class Fielders {
         return this.fielders[key];
     } 
 
-    move(field_, batter, ball, sbo_counter) {
+    move(field_, batter, runners, ball, sbo_counter) {
         for (let key in this.fielders) {
-            this.fielders[key].move(field_, batter, this, ball, sbo_counter);
+            this.fielders[key].move(field_, batter, runners, this, ball, sbo_counter);
         }
     }
 
     draw() {
         for (let key in this.fielders) {
             this.fielders[key].draw();
+        }
+    }
+}
+
+class Runners {
+    constructor(field_) {
+        this.is_runner = {
+            first: false,
+            second: false,
+            third: false,
+        }
+        this.runners = {
+            first: new Player(field_.items.base_first.x-6, field_.items.base_first.y-12, 6, 'blue'), // 一塁ランナー
+            second: new Player(field_.items.base_second.x-6, field_.items.base_second.y, 6, 'blue'), // 二塁ランナー
+            third: new Player(field_.items.base_third.x+6, field_.items.base_third.y, 6, 'blue'), // 三塁ランナー
+        }
+    }
+
+    draw() {
+        for (let key in this.runners) {
+            if (this.is_runner[key]) {
+                this.runners[key].draw();
+            }
         }
     }
 }
