@@ -20,7 +20,8 @@ class ScoreCounter extends Counter {
         this.inning = 1;
         this.turn = 0;
         this.turn_name = ['表', '裏'];
-        this.team_name = ['C', 'D'];
+        this.team_name = ['D', 'C'];
+        this.team_color = ['blue', 'red'];
         this.scores = [0, 0];
     }
 
