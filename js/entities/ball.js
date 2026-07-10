@@ -18,6 +18,8 @@ class Ball {
         this.is_fair = false;
         this.is_foul = false;
         this.idle_count = 0; // 速度がほぼ0のまま経過したフレーム数（球が転がり続けるのを防ぐ）
+        this.is_thrown = false; // 打球ではなく、盗塁を刺す等のために野手が送球したボールかどうか
+        this.foul_count = 0; // ファウルと判定されてから経過したフレーム数
     }
 
     move(field_, runners) {
@@ -61,9 +63,17 @@ class Ball {
                 this.is_foul = true;
                 console.log("fowl");
             }
-        } else if (!runners || !runners.list.some(r => r.moving)) {
-            // 走者が塁の間を走っている最中は次の投球を始めない
+            // ファウルになってから経過したフレーム数を数える（誰も拾わなくても一定時間で強制的に終わらせるため）
+            if (this.is_foul) {
+                this.foul_count += 1;
+            } else {
+                this.foul_count = 0;
+            }
+        } else if (!runners || !runners.batter.moving) {
+            // 打者が今のヒットで一塁へ走っている最中は次の投球を始めない
             // （途中で始まると、出現直後のボールをピッチャーが打球のように誤って処理してしまう）
+            // ※ 他の走者の盗塁はここで止めない。盗塁は投球に対して仕掛けるものなので、
+            // 　次の投球を止めてしまうと守備側が送球する機会自体がなくなってしまう。
             this.dead_count -= 1;
             if (this.dead_count <= 0) {
                 this.reset();

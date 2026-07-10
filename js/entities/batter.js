@@ -79,14 +79,19 @@ class Batter extends Runner {
     }
 
     move(field_, runners, ball) {
-        if (this.is_hit && !ball.is_foul) {
-            if (!this.active) {
-                // ヒットした直後の1回だけ、一塁への進塁を開始する（一塁に走者がいれば押し出す）
-                this.active = true;
-                runners.prepareForBatterRunner();
-                this.advance();
-            }
+        if (this.active) {
+            // 既に走者として塁に出ている間は、打撃関連の処理（打席移動やスイング判定）は一切行わない
+            // （is_hitはプレーが終わるたびfalseに戻るため、ここで打撃処理を続けさせると
+            // 　塁上にいるのにWSADで動けてしまう等の不具合になる）
             super.move(); // Runner.move(): 目標の塁へ向かって走る
+            return;
+        }
+        if (this.is_hit && !ball.is_foul) {
+            // ヒットした直後の1回だけ、一塁への進塁を開始する（一塁に走者がいれば押し出す）
+            this.active = true;
+            runners.prepareForBatterRunner();
+            this.advance();
+            super.move();
         } else {
             // バットを振ったストライクを判定
             if (circleCollision(ball.x, ball.y, ball.radius, field_.items.dirt_home.x, field_.items.dirt_home.y, field_.items.dirt_home.radius) && -60 < this.angle && this.angle < 60) { // ホームベースのダートサークルに入っていて、バットが振られていたら

@@ -26,6 +26,14 @@ class Player {
     }
 }
 
+// 今のプレーを終える共通処理。打者(=走者)が塁上に残っていても、is_hitは必ず解除する。
+// （is_hitが残ったままだと、次に投げられる投球を「打球がまだ生きている」と誤認してしまい、
+// 　ピッチャーが投球をその場で拾って処理する、通常の投球判定が行われない等の不具合が起きる）
+function concludePlay(batter, fielders) {
+    batter.is_hit = false;
+    fielders.reset();
+}
+
 class Fielder extends Player {
     constructor(init_x, init_y, radius=6, hold_time=15) {
         super(init_x, init_y, radius);
@@ -40,7 +48,8 @@ class Fielder extends Player {
     }
 
     move(field_, batter, runners, fielders, ball, sbo_counter) {
-        if (batter.is_hit && ball.alive) {
+        // 打球（is_hit）だけでなく、盗塁を刺すための送球（is_thrown）も処理対象にする
+        if ((batter.is_hit || ball.is_thrown) && ball.alive) {
             if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) { // ボールを拾ったら
                 if (ball.is_foul) {
                     ball.alive = false;
@@ -59,22 +68,33 @@ class Fielder extends Player {
                         this.hold_count -= 1;
                         this.speed = 0;
                         ball.speed = 0;
-                    } else { // 一定時間ボールを持ったら、ファーストへボールを投げる
-                        ball.speed = 4
-                        if (runners.is_runner.third) { // 三塁にランナーがいるとき、ホームへボールを投げる
+                    } else {
+                        // 実際に進塁しようとしている（動いている）走者がいる塁にだけ送球する。
+                        // 塁に「いる」というだけで動いていない走者に投げてしまうと、
+                        // 安全に到達した走者を放っておいて意味もなく他の塁へ投げ続けてしまう。
+                        const movingTo = (idx) => runners.list.some(r => r.active && r.moving && r.target === idx);
+                        if (movingTo(4)) { // 本塁へ向かっている走者がいる
                             var dx = field_.items.base_home.x - this.x;
                             var dy = field_.items.base_home.y - this.y;
-                        } else if (runners.is_runner.second) { // 二塁にランナーがいるとき、サードへボールを投げる
+                        } else if (movingTo(3)) { // 三塁へ向かっている走者がいる
                             var dx = field_.items.base_third.x + field_.items.base_third.radius - this.x;
                             var dy = field_.items.base_third.y - field_.items.base_third.radius*2 - this.y;
-                        } else if (runners.is_runner.first) { // 一塁にランナーがいるとき、セカンドへボールを投げる
+                        } else if (movingTo(2)) { // 二塁へ向かっている走者がいる
                             var dx = field_.items.base_second.x - this.x;
                             var dy = field_.items.base_second.y - field_.items.base_second.radius - this.y;
-                        } else { // ランナーがいないとき、ファーストへボールを投げる
+                        } else if (movingTo(1)) { // 一塁へ向かっている走者がいる
                             var dx = field_.items.base_first.x - field_.items.base_first.radius - this.x;
                             var dy = field_.items.base_first.y - field_.items.base_first.radius*2 - this.y;
+                        } else {
+                            // 誰も進塁しようとしていない → 送球せずそのままプレーを終える
+                            ball.alive = false;
+                            fielders.someome_has_ball = false;
+                            concludePlay(batter, fielders);
+                            return;
                         }
+                        ball.speed = 4;
                         ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                        ball.is_thrown = true;
                         // 投げた後はボールを離すので、他の野手が再び追いかけられるようにする
                         // （trueのままだと誰も追いかけなくなり、送球が誰にも捕られず転がり続ける）
                         fielders.someome_has_ball = false;
@@ -108,16 +128,17 @@ class Pitcher extends Fielder {
 
 class First extends Player {
     move(field_, batter, runners, fielders, ball, sbo_counter) {
-        if (batter.is_hit && ball.alive) {
+        if ((batter.is_hit || ball.is_thrown) && ball.alive) {
             if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) {
                 ball.alive = false;
                 if (batter.baseIndex < 1) { // まだ一塁に到達していなければアウト
                     sbo_counter.out();
                     batter.reset();
+                    fielders.reset();
                 } else {
                     sbo_counter.reset(); // 既に一塁へ到達済みならセーフ。走者としてそのまま残す
+                    concludePlay(batter, fielders);
                 }
-                fielders.reset();
             } else {
                 if (ball.is_foul && field_.items.base_home.x < ball.x) {
                     if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
@@ -157,7 +178,7 @@ function handleTagPlay(fielder, targetBase, field_, batter, runners, fielders, b
     if (!runner) {
         // 盗塁などタッチ対象の走者がいない送球だった → そのままプレー終了
         fielder.holding_ball = false;
-        fielders.reset();
+        concludePlay(batter, fielders);
         return true;
     }
     if (circleCollision(runner.x, runner.y, runner.radius, fielder.x, fielder.y, fielder.radius)) {
@@ -165,13 +186,13 @@ function handleTagPlay(fielder, targetBase, field_, batter, runners, fielders, b
         sbo_counter.out();
         runner.reset();
         fielder.holding_ball = false;
-        fielders.reset();
+        concludePlay(batter, fielders);
         return true;
     }
     if (!runner.moving) {
         // タッチされる前に塁へ到達できたのでセーフ
         fielder.holding_ball = false;
-        fielders.reset();
+        concludePlay(batter, fielders);
         return true;
     }
     return true; // 走者はまだ到達しておらずタッチもできていない。野手はボールを持って待つ
@@ -185,7 +206,7 @@ class Second extends Fielder {
         }
         if (ball.x > field_.items.base_second.x) {
             super.move(field_, batter, runners, fielders, ball, sbo_counter);
-        } else if (batter.is_hit && ball.alive) {
+        } else if ((batter.is_hit || ball.is_thrown) && ball.alive) {
             if (handleTagPlay(this, 2, field_, batter, runners, fielders, ball, sbo_counter)) {
                 return;
             }
@@ -228,21 +249,25 @@ class Third extends Fielder {
             handleTagPlay(this, 3, field_, batter, runners, fielders, ball, sbo_counter);
             return;
         }
-        if (ball.x < field_.items.base_home.x) {
+        // 走者が三塁へ向かっている間は、ボールの位置に関わらず必ず三塁をカバーする
+        // （ボールの左右だけで守備位置を決めていたため、走者が向かっているのに誰もいないことがあった）
+        const runnerHeadingHere = runners.list.some(r => r.active && r.moving && r.target === 3);
+        if (!runnerHeadingHere && ball.x < field_.items.base_home.x) {
             super.move(field_, batter, runners, fielders, ball, sbo_counter);
-        } else if (batter.is_hit && ball.alive) {
-            if (handleTagPlay(this, 3, field_, batter, runners, fielders, ball, sbo_counter)) {
-                return;
-            }
-            if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
-            var dx = field_.items.base_third.x + field_.items.base_first.radius - this.x;
-            var dy = field_.items.base_third.y - field_.items.base_third.radius*2 - this.y;
-            var distance = Math.sqrt(dx ** 2 + dy ** 2);
-            if (distance > 1) {
-                this.angle = Math.acos(dx / distance) * 180 / Math.PI;
-                this.x += this.speed * Math.cos(this.angle * Math.PI / 180);
-                this.y += this.speed * Math.sin(this.angle * Math.PI / 180);
-            }
+            return;
+        }
+        if ((batter.is_hit || ball.is_thrown) && ball.alive && handleTagPlay(this, 3, field_, batter, runners, fielders, ball, sbo_counter)) {
+            return;
+        }
+        // 三塁をカバーする定位置へ戻る
+        if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
+        var dx = field_.items.base_third.x + field_.items.base_first.radius - this.x;
+        var dy = field_.items.base_third.y - field_.items.base_third.radius*2 - this.y;
+        var distance = Math.sqrt(dx ** 2 + dy ** 2);
+        if (distance > 1) {
+            this.angle = Math.acos(dx / distance) * 180 / Math.PI;
+            this.x += this.speed * Math.cos(this.angle * Math.PI / 180);
+            this.y += this.speed * Math.sin(this.angle * Math.PI / 180);
         }
     }
 }
@@ -255,21 +280,56 @@ class Catcher extends Fielder {
         }
         if (ball.alive && !batter.is_hit) { // バッターが打たなかったとき
             if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) {
-                ball.alive = false;
                 if (ball.is_strike) {
                     sbo_counter.strike();
                 } else {
                     sbo_counter.ball();
                 }
-                fielders.reset();
+                // 盗塁を試みている走者がいれば、投球を受けたその場から刺しに行く
+                // （三塁>二塁の順で、進んでいる走者へ送球する）
+                const stealTarget = runners.list.some(r => r.active && r.moving && r.target === 3) ? 3
+                    : runners.list.some(r => r.active && r.moving && r.target === 2) ? 2
+                    : null;
+                if (stealTarget === 3) {
+                    var dx = field_.items.base_third.x + field_.items.base_third.radius - this.x;
+                    var dy = field_.items.base_third.y - field_.items.base_third.radius*2 - this.y;
+                } else if (stealTarget === 2) {
+                    var dx = field_.items.base_second.x - this.x;
+                    var dy = field_.items.base_second.y - field_.items.base_second.radius - this.y;
+                }
+                if (stealTarget) {
+                    ball.speed = 4;
+                    ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                    ball.is_thrown = true;
+                } else {
+                    ball.alive = false;
+                    fielders.reset();
+                }
             } else { // 投手の球筋を追う
                 this.x += ball.speed * Math.cos(ball.angle * Math.PI / 180);
             }
-        } else if (batter.is_hit && ball.alive && runners.list.some(r => r.active && r.moving && r.target === 4) &&
+            return;
+        }
+        // 走者がホームへ向かっている間は、ボールの位置に関わらず必ずホームをカバーする
+        // （追いかける処理に任せていたため、走者が向かっているのに誰もいないことがあった）
+        const runnerHeadingHere = runners.list.some(r => r.active && r.moving && r.target === 4);
+        if ((batter.is_hit || ball.is_thrown) && ball.alive && runnerHeadingHere &&
             handleTagPlay(this, 4, field_, batter, runners, fielders, ball, sbo_counter)) { // ホームへ突入する走者へのタッグプレー
-            // handleTagPlay内で捕球・タッチ判定・保留を処理済み
-        } else if ((field_.items.base_home.y+field_.items.base_second.y)/2 < ball.y) { // バッターが打ったときは、他の野手と同じ動き
+            return; // handleTagPlay内で捕球・タッチ判定・保留を処理済み
+        }
+        if (!runnerHeadingHere && (field_.items.base_home.y+field_.items.base_second.y)/2 < ball.y) { // バッターが打ったときは、他の野手と同じ動き
             super.move(field_, batter, runners, fielders, ball, sbo_counter);
+            return;
+        }
+        // ホームをカバーする定位置へ戻る
+        if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
+        var dx = field_.items.base_home.x - this.x;
+        var dy = (field_.items.base_home.y + 30) - this.y;
+        var distance = Math.sqrt(dx ** 2 + dy ** 2);
+        if (distance > 1) {
+            this.angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            this.x += this.speed * Math.cos(this.angle * Math.PI / 180);
+            this.y += this.speed * Math.sin(this.angle * Math.PI / 180);
         }
     }
 }
@@ -337,17 +397,21 @@ class Runner extends Player {
         return { x: f.base_home.x, y: f.base_home.y }; // 0 or 4
     }
 
+    // 帰塁で引き返している最中でも呼べる（moving中かどうかを問わない）。
+    // これにより進塁⇔帰塁を完全に往復し終わる前に何度でも切り替えられる。
     advance() {
-        if (this.active && !this.moving && this.baseIndex < 4) {
+        if (this.active && this.baseIndex < 4) {
             this.target = this.baseIndex + 1;
             this.moving = true;
         }
     }
 
-    // 進塁中の走者を、直前にいた塁（baseIndex）まで戻す。静止中は何もしない＝その塁より後ろには戻れない
+    // 走者を、直前にいた塁（baseIndex）まで戻す。それより後ろには戻れない。
+    // advance()と同様、進塁の途中で呼んでも即座に向きを切り替えられる。
     recall() {
-        if (this.active && this.moving) {
+        if (this.active) {
             this.target = this.baseIndex;
+            this.moving = true;
         }
     }
 
@@ -394,15 +458,6 @@ class Runners {
         this.list = [batter, new Runner(field_), new Runner(field_), new Runner(field_)];
     }
 
-    // Fielderの送球先判定などが使う互換プロパティ
-    get is_runner() {
-        return {
-            first: this.list.some(r => r.active && r.baseIndex === 1),
-            second: this.list.some(r => r.active && r.baseIndex === 2),
-            third: this.list.some(r => r.active && r.baseIndex === 3),
-        };
-    }
-
     runnerAt(idx) {
         return this.list.find(r => r.active && !r.moving && r.baseIndex === idx);
     }
@@ -425,6 +480,27 @@ class Runners {
         runner.advance();
     }
 
+    // プレーが完全に終わり、打者(=走者)が塁上で静止しているとき、
+    // 専用のRunner枠へ状態を引き継いで、打者自身は次の打者として打席へ戻す。
+    // （これをしないと、走者が塁に残っている間ずっと打席に誰も表示されなくなる）
+    handOffBatterIfSettled(ball) {
+        if (!this.batter.active || this.batter.moving || ball.alive) {
+            return;
+        }
+        const slot = this.list.find(r => r !== this.batter && !r.active);
+        if (!slot) {
+            return; // 空きがなければ何もしない（塁が全部埋まっている等、通常は起こらない）
+        }
+        slot.active = true;
+        slot.baseIndex = this.batter.baseIndex;
+        slot.moving = false;
+        slot.target = this.batter.baseIndex;
+        slot.run_speed = 0;
+        slot.x = this.batter.x;
+        slot.y = this.batter.y;
+        this.batter.reset(); // 打者は打席へ戻る
+    }
+
     reset() {
         for (const r of this.list) {
             r.reset();
@@ -433,12 +509,18 @@ class Runners {
 
     // laneFirst=Dキー(一塁の走者), laneSecond=Wキー(二塁), laneThird=Aキー(三塁), laneAll=Sキー(全員)
     selectRunners(laneFirst, laneSecond, laneThird, laneAll) {
-        return this.list.filter(r => r.active && (
-            laneAll ||
-            (laneFirst && r.baseIndex === 1) ||
-            (laneSecond && r.baseIndex === 2) ||
-            (laneThird && r.baseIndex === 3)
-        ));
+        return this.list.filter(r => {
+            if (!r.active) return false;
+            if (r === this.batter && r.baseIndex < 1) {
+                // 打者が一塁へ向かって自動で走っている間は、全員選択(S)の対象にしない
+                // （そうしないと、他の走者を操作しようとしただけで一塁への進塁が横取りされてしまう）
+                return false;
+            }
+            return laneAll ||
+                (laneFirst && r.baseIndex === 1) ||
+                (laneSecond && r.baseIndex === 2) ||
+                (laneThird && r.baseIndex === 3);
+        });
     }
 
     tryAdvance(laneFirst, laneSecond, laneThird, laneAll) {
@@ -450,6 +532,15 @@ class Runners {
     tryRetreat(laneFirst, laneSecond, laneThird, laneAll) {
         for (const r of this.selectRunners(laneFirst, laneSecond, laneThird, laneAll)) {
             r.recall();
+        }
+    }
+
+    // ファウルになったら、進塁・盗塁を試みていた走者を全員、元にいた塁へ戻す
+    recallAllOnFoul() {
+        for (const r of this.list) {
+            if (r.active && r.moving) {
+                r.recall();
+            }
         }
     }
 

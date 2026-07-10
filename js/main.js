@@ -16,6 +16,7 @@ function setup() {
 }
 
 const BALL_STUCK_LIMIT = 90; // ボールが止まったまま誰にも拾われない状態が続いたら強制的にプレーを終える(フレーム数)
+const FOUL_TIMEOUT = 180; // ファウルと判定されてから、誰も処理しなくても強制的にプレーを終えるまでの時間(フレーム数、60fps換算で3秒)
 
 function draw() {
     var up = keyIsDown(87) || keyIsDown(UP_ARROW); // Wキーまたは上キー
@@ -28,17 +29,14 @@ function draw() {
     if (left) { batter.vx -= 1; } // バッターを左に移動
     if (right) { batter.vx += 1; } // バッターを右に移動
 
-    // 打者がヒットして一塁へ走っている最中（まだ一塁に到達していない間）はWSAD/矢印を進塁操作に使わない
-    var runningToFirst = batter.is_hit && batter.baseIndex < 1;
-    if (!runningToFirst) {
-        // D/右=一塁の走者を選択、W/上=二塁、A/左=三塁、S/下=全員を選択
-        // Mキーで選択した走者を進塁、Nキーでその塁までの範囲で帰塁させる
-        if (keyIsDown(77)) { // M
-            runners.tryAdvance(right, up, left, down);
-        }
-        if (keyIsDown(78)) { // N
-            runners.tryRetreat(right, up, left, down);
-        }
+    // D/右=一塁の走者を選択、W/上=二塁、A/左=三塁、S/下=全員を選択
+    // Mキーで選択した走者を進塁、Nキーでその塁までの範囲で帰塁させる
+    // （打者が一塁へ向かって自動で走っている間の除外はRunners.selectRunners側で行う）
+    if (keyIsDown(77)) { // M
+        runners.tryAdvance(right, up, left, down);
+    }
+    if (keyIsDown(78)) { // N
+        runners.tryRetreat(right, up, left, down);
     }
 
     if (!batter.is_hit) {
@@ -53,13 +51,30 @@ function draw() {
     batter.move(field_, runners, ball); // バッターを移動
     ball.move(field_, runners); // ボールを移動（走者が走っている間は次の投球を始めない）
     fielders.move(field_, batter, runners, ball, sbo_counter); // 野手を移動
+
+    // ファウルになったら、進塁・盗塁を試みていた走者は全員元の塁へ戻す
+    if (ball.is_foul) {
+        runners.recallAllOnFoul();
+        // ファウルのボールを誰も処理しなくても、3秒経ったら強制的にプレーを終える
+        if (ball.alive && ball.foul_count > FOUL_TIMEOUT) {
+            ball.alive = false;
+            sbo_counter.foul();
+            concludePlay(batter, fielders);
+        }
+    }
+
     runners.move(sbo_counter); // ランナーを移動
 
     // ボールが止まったまま誰にも拾われずに放置され続けたら、プレーを強制的に終える
-    if (ball.alive && ball.idle_count > BALL_STUCK_LIMIT) {
+    // （走者が塁の間を走っている最中に発動すると、守備陣が初期位置へ戻ってしまうので待つ）
+    if (ball.alive && ball.idle_count > BALL_STUCK_LIMIT && !runners.list.some(r => r.moving)) {
         ball.alive = false;
-        fielders.reset();
+        concludePlay(batter, fielders);
     }
+
+    // プレーが完全に終わり、打者(=走者)が塁上で静止していたら、専用のランナー枠に引き継いで
+    // 打者自身は次の打者として打席に戻す（そうしないと走者が塁にいる間ずっと打席に誰も現れない）
+    runners.handOffBatterIfSettled(ball);
 
     field_.draw(); // フィールドを描画
     runners.draw(); // バッター・ランナーを描画（打者自身がRunnerを兼ねている）
