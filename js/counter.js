@@ -118,6 +118,9 @@ class SBOCounter extends Counter {
         if (this.counts['O'] >= 3) {
             this.score_counter.turn_change();
             this.counts['O'] = 0;
+            if (this.runners) {
+                this.runners.reset(); // チェンジになったら走者を全員クリアする
+            }
         }
     }
 

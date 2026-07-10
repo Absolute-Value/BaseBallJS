@@ -17,9 +17,10 @@ class Ball {
         this.is_strike = false
         this.is_fair = false;
         this.is_foul = false;
+        this.idle_count = 0; // 速度がほぼ0のまま経過したフレーム数（球が転がり続けるのを防ぐ）
     }
 
-    move(field_) {
+    move(field_, runners) {
         if (this.alive) {
             let vx = this.speed * Math.cos(this.angle * Math.PI / 180);
             this.x += vx
@@ -33,6 +34,13 @@ class Ball {
             if (this.y + vy < 0 | CANVAS_HEIGHT < this.y + vy) { // 上下の壁に当たったら反射
                 this.angle = - this.angle;
                 this.speed *= 0.5;
+            }
+
+            // 球がほぼ止まったまま誰にも拾われない状態が続いたかを記録する
+            if (this.speed <= 0.15) {
+                this.idle_count += 1;
+            } else {
+                this.idle_count = 0;
             }
 
             // ストライクに入っているかの判定
@@ -53,7 +61,9 @@ class Ball {
                 this.is_foul = true;
                 console.log("fowl");
             }
-        } else {
+        } else if (!runners || !runners.list.some(r => r.moving)) {
+            // 走者が塁の間を走っている最中は次の投球を始めない
+            // （途中で始まると、出現直後のボールをピッチャーが打球のように誤って処理してしまう）
             this.dead_count -= 1;
             if (this.dead_count <= 0) {
                 this.reset();

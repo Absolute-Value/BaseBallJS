@@ -7,11 +7,7 @@ Copilotを試してたら楽しくなって作ってしまった[コチラ](http
 * [非常用リンク](https://absolute-value.github.io/BaseBallJS/)
 
 ## 追加予定
-- ランナー
-- ランナーの進塁と得点
-- フェンス
-- 観客
-- 外野手
+- 攻守交替
 
 <!-- MARKDOWN LINKS & IMAGES -->
 [JavaScript.js]: https://img.shields.io/badge/JavaScript-f1e05a?style=for-the-badge&logo=javascript&logoColor=black

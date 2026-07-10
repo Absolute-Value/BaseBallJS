@@ -1,6 +1,8 @@
-class Batter extends Player {
-    constructor(init_x, init_y, radius=6, color='blue') {
-        super(init_x, init_y, radius, color);
+// 打者はRunnerを継承する。ヒットした瞬間から「打者自身」がそのまま塁上の走者になり、
+// 別のRunnerオブジェクトを新しく作らない（一塁到達時に二重表示になるのを防ぐ）。
+class Batter extends Runner {
+    constructor(field_, radius=6, color='blue') {
+        super(field_, radius, color);
         this.bat_width = 6 // バットの幅
         this.bat_length = 28 // バットの長さ
         this.init_angle = 120 // バットの初期角度
@@ -10,10 +12,15 @@ class Batter extends Player {
     }
 
     reset() {
-        super.reset();
-        this.distance = 100;
+        super.reset(); // Runner.reset(): active/baseIndex/moving等をクリア
+        if (!this.field_) {
+            return; // コンストラクタ内でPlayerから暫定的に呼ばれた時点ではfield_が未設定なのでここで打ち切る
+        }
+        const home = this.field_.items.base_home;
+        this.x = home.x - 24;
+        this.y = home.y - 8;
+        this.angle = this.init_angle || 120;
         this.is_hit = false;
-        this.angle = this.init_angle;
         this.vx = 0;
         this.vy = 0;
     }
@@ -73,24 +80,20 @@ class Batter extends Player {
 
     move(field_, runners, ball) {
         if (this.is_hit && !ball.is_foul) {
-            // 一塁に向かって走る
-            if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
-            var dx = field_.items.base_first.x - this.x;
-            var dy = field_.items.base_first.y - field_.items.base_first.radius - this.y;
-            this.distance = Math.sqrt(dx ** 2 + dy ** 2);
-            if (this.distance >= 1) {
-                this.vx = dx / this.distance * this.speed;
-                this.vy = dy / this.distance * this.speed;
-            } else {
-                runners.is_runner.first = true;
+            if (!this.active) {
+                // ヒットした直後の1回だけ、一塁への進塁を開始する（一塁に走者がいれば押し出す）
+                this.active = true;
+                runners.prepareForBatterRunner();
+                this.advance();
             }
+            super.move(); // Runner.move(): 目標の塁へ向かって走る
         } else {
             // バットを振ったストライクを判定
             if (circleCollision(ball.x, ball.y, ball.radius, field_.items.dirt_home.x, field_.items.dirt_home.y, field_.items.dirt_home.radius) && -60 < this.angle && this.angle < 60) { // ホームベースのダートサークルに入っていて、バットが振られていたら
                 ball.is_strike = true;
             }
             // バットがバッターボックスから出ないようにする
-            if ((this.x - this.radius <= field_.items.batter_box_left.center_x - field_.items.batter_box_left.width / 2 && this.vx < 0) | 
+            if ((this.x - this.radius <= field_.items.batter_box_left.center_x - field_.items.batter_box_left.width / 2 && this.vx < 0) |
                 (field_.items.batter_box_left.center_x + field_.items.batter_box_left.width / 2 <= this.x + this.radius && this.vx > 0)) {
                 this.vx = 0;
             }
@@ -98,17 +101,22 @@ class Batter extends Player {
                 (this.y + this.radius >= field_.items.batter_box_left.center_y + field_.items.batter_box_left.height / 2 && this.vy > 0)) {
                 this.vy = 0;
             }
-        } 
-        this.x += this.vx;
-        this.y += this.vy;
-        this.vx = 0;
-        this.vy = 0;
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vx = 0;
+            this.vy = 0;
+        }
         this.hitting(ball);
     }
 
     draw() {
-        super.draw();
-        if (!this. is_hit) {
+        if (this.active) {
+            // 一塁到達後（走者としてプレー中）は他の走者と同じ丸だけを描画する
+            super.draw();
+            return;
+        }
+        Player.prototype.draw.call(this); // 打席にいる間は常に打者本体を描画する
+        if (!this.is_hit) {
             // 薄茶色のバットを描画
             noStroke();
             fill(222, 184, 135);
