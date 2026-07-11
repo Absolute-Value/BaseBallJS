@@ -104,6 +104,15 @@ function draw() {
         suppress_swing = false; // Nを離したら、次に押したときは通常通りスイングできる
     }
 
+    // 自分の守備中、誰かがボールを持っていたら、WASD/矢印で塁を選んでMキーで手動送球する
+    // （D/右=一塁、W/上=二塁、A/左=三塁、S/下=本塁）
+    if (humanPitching && fielders.holder && keyIsDown(77)) {
+        if (right) { fielders.manualThrow(1, field_, ball); }
+        else if (up) { fielders.manualThrow(2, field_, ball); }
+        else if (left) { fielders.manualThrow(3, field_, ball); }
+        else if (down) { fielders.manualThrow(4, field_, ball); }
+    }
+
     if (humanBatting && !batter.is_hit && ball.alive) {
         // 投球が来ている間のNキーはスイング（投球に使ったNキーの押しっぱなしでは振らない）
         if (n_down && !suppress_swing) {

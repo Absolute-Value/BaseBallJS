@@ -31,7 +31,95 @@ class Player {
 // 　ピッチャーが投球をその場で拾って処理する、通常の投球判定が行われない等の不具合が起きる）
 function concludePlay(batter, fielders) {
     batter.is_hit = false;
+    fielders.holder = null;
     fielders.reset();
+}
+
+// ベースカバーの割り当て(coverTarget)が入っていれば、そこへ向かって移動する。
+// 到着したら割り当てを解除して、通常の判断（自分の持ち場に戻る等）に任せる。
+// trueを返したら、呼び出し側はこのフレームの他の処理をせず終える。
+function moveTowardCover(fielder, fielders) {
+    if (!fielder.coverTarget || fielder === fielders.holder) {
+        return false;
+    }
+    if (fielder.speed < 2) { fielder.speed += 0.05; }
+    const dx = fielder.coverTarget.x - fielder.x;
+    const dy = fielder.coverTarget.y - fielder.y;
+    const distance = Math.sqrt(dx ** 2 + dy ** 2);
+    if (distance > 3) {
+        fielder.x += dx / distance * fielder.speed;
+        fielder.y += dy / distance * fielder.speed;
+        return true;
+    }
+    fielder.coverTarget = null;
+    return false;
+}
+
+// ボールを拾った野手の「持つ／投げる」判定。追いかける動き・移動そのものとは独立して呼び出せる
+// （手動操作中のピッチャーのように、動きは自前で処理していても捕球判定だけは共通化したい場合に使う）。
+// ボールに触れていなければfalseを返す。
+function handleBallPickup(fielder, field_, batter, runners, fielders, ball, sbo_counter) {
+    if (!circleCollision(ball.x, ball.y, ball.radius, fielder.x, fielder.y, fielder.radius)) {
+        return false;
+    }
+    if (ball.is_foul) {
+        ball.alive = false;
+        sbo_counter.foul();
+        batter.reset();
+        fielders.holder = null;
+        fielders.reset();
+        return true;
+    }
+    if (fielders.holder !== fielder) {
+        // 新たに拾った野手を記録し、空いている塁があれば近くの野手をカバーに向かわせる
+        fielders.holder = fielder;
+        fielders.assignCoverage(field_);
+    }
+    fielders.someome_has_ball = true;
+    const humanPitching = sbo_counter.score_counter.turn !== MY_TEAM_INDEX;
+    if (fielder.hold_count > 0) { // 一定時間ボールを持つ
+        fielder.hold_count -= 1;
+        fielder.speed = 0;
+        ball.speed = 0;
+    } else if (humanPitching) {
+        // 自分の守備中は自動で送球しない。WASDでベースを選んでMキーで送球するのを待つ
+        fielder.speed = 0;
+        ball.speed = 0;
+    } else {
+        // 実際に進塁しようとしている（動いている）走者がいる塁にだけ送球する。
+        // 塁に「いる」というだけで動いていない走者に投げてしまうと、
+        // 安全に到達した走者を放っておいて意味もなく他の塁へ投げ続けてしまう。
+        const movingTo = (idx) => runners.list.some(r => r.active && r.moving && r.target === idx);
+        let dx, dy;
+        if (movingTo(4)) { // 本塁へ向かっている走者がいる
+            dx = field_.items.base_home.x - fielder.x;
+            dy = field_.items.base_home.y - fielder.y;
+        } else if (movingTo(3)) { // 三塁へ向かっている走者がいる
+            dx = field_.items.base_third.x + field_.items.base_third.radius - fielder.x;
+            dy = field_.items.base_third.y - field_.items.base_third.radius*2 - fielder.y;
+        } else if (movingTo(2)) { // 二塁へ向かっている走者がいる
+            dx = field_.items.base_second.x - fielder.x;
+            dy = field_.items.base_second.y - field_.items.base_second.radius - fielder.y;
+        } else if (movingTo(1)) { // 一塁へ向かっている走者がいる
+            dx = field_.items.base_first.x - field_.items.base_first.radius - fielder.x;
+            dy = field_.items.base_first.y - field_.items.base_first.radius*2 - fielder.y;
+        } else {
+            // 誰も進塁しようとしていない → 送球せずそのままプレーを終える
+            ball.alive = false;
+            fielders.someome_has_ball = false;
+            concludePlay(batter, fielders);
+            return true;
+        }
+        ball.speed = 4;
+        ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        ball.is_thrown = true;
+        ball.is_pitch = false;
+        // 投げた後はボールを離すので、他の野手が再び追いかけられるようにする
+        // （trueのままだと誰も追いかけなくなり、送球が誰にも捕られず転がり続ける）
+        fielders.someome_has_ball = false;
+        fielders.holder = null;
+    }
+    return true;
 }
 
 class Fielder extends Player {
@@ -45,73 +133,28 @@ class Fielder extends Player {
         super.reset();
         this.hold_count = this.hold_time;
         this.holding_ball = false;
+        this.coverTarget = null;
     }
 
     move(field_, batter, runners, fielders, ball, sbo_counter) {
+        if (moveTowardCover(this, fielders)) {
+            return;
+        }
         // 打球（is_hit）だけでなく、盗塁を刺すための送球（is_thrown）も処理対象にする
         if ((batter.is_hit || ball.is_thrown) && ball.alive) {
-            if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) { // ボールを拾ったら
-                if (ball.is_foul) {
-                    ball.alive = false;
-                    if (ball.is_foul) {
-                        sbo_counter.foul();
-                    } else if (batter.distance > 1) {
-                        sbo_counter.out();
-                    } else {
-                        sbo_counter.reset();
-                    }
-                    batter.reset();
-                    fielders.reset();
-                } else {
-                    fielders.someome_has_ball = true;
-                    if (this.hold_count > 0) { // 一定時間ボールを持つ
-                        this.hold_count -= 1;
-                        this.speed = 0;
-                        ball.speed = 0;
-                    } else {
-                        // 実際に進塁しようとしている（動いている）走者がいる塁にだけ送球する。
-                        // 塁に「いる」というだけで動いていない走者に投げてしまうと、
-                        // 安全に到達した走者を放っておいて意味もなく他の塁へ投げ続けてしまう。
-                        const movingTo = (idx) => runners.list.some(r => r.active && r.moving && r.target === idx);
-                        if (movingTo(4)) { // 本塁へ向かっている走者がいる
-                            var dx = field_.items.base_home.x - this.x;
-                            var dy = field_.items.base_home.y - this.y;
-                        } else if (movingTo(3)) { // 三塁へ向かっている走者がいる
-                            var dx = field_.items.base_third.x + field_.items.base_third.radius - this.x;
-                            var dy = field_.items.base_third.y - field_.items.base_third.radius*2 - this.y;
-                        } else if (movingTo(2)) { // 二塁へ向かっている走者がいる
-                            var dx = field_.items.base_second.x - this.x;
-                            var dy = field_.items.base_second.y - field_.items.base_second.radius - this.y;
-                        } else if (movingTo(1)) { // 一塁へ向かっている走者がいる
-                            var dx = field_.items.base_first.x - field_.items.base_first.radius - this.x;
-                            var dy = field_.items.base_first.y - field_.items.base_first.radius*2 - this.y;
-                        } else {
-                            // 誰も進塁しようとしていない → 送球せずそのままプレーを終える
-                            ball.alive = false;
-                            fielders.someome_has_ball = false;
-                            concludePlay(batter, fielders);
-                            return;
-                        }
-                        ball.speed = 4;
-                        ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
-                        ball.is_thrown = true;
-                        ball.is_pitch = false;
-                        // 投げた後はボールを離すので、他の野手が再び追いかけられるようにする
-                        // （trueのままだと誰も追いかけなくなり、送球が誰にも捕られず転がり続ける）
-                        fielders.someome_has_ball = false;
-                    }
+            if (!handleBallPickup(this, field_, batter, runners, fielders, ball, sbo_counter)) {
+                if (fielders.someome_has_ball) {
+                    this.speed = 0;
+                } else { // 誰もボールを拾っていないときは、ボールを追いかける
+                    if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
+                    // ボールの現在位置ではなく、少し先の予測位置を追いかける（現在位置だけを追うと常に後手に回る）
+                    var lead = 8;
+                    var bvx = ball.speed * Math.cos(ball.angle * Math.PI / 180);
+                    var bvy = ball.speed * Math.sin(ball.angle * Math.PI / 180);
+                    var dx = (ball.x + bvx * lead) - this.x;
+                    var dy = (ball.y + bvy * lead) - this.y;
+                    this.angle = Math.atan2(dy, dx) * 180 / Math.PI;
                 }
-            } else if (fielders.someome_has_ball) {
-                this.speed = 0;
-            } else { // 誰もボールを拾っていないときは、ボールを追いかける
-                if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
-                // ボールの現在位置ではなく、少し先の予測位置を追いかける（現在位置だけを追うと常に後手に回る）
-                var lead = 8;
-                var bvx = ball.speed * Math.cos(ball.angle * Math.PI / 180);
-                var bvy = ball.speed * Math.sin(ball.angle * Math.PI / 180);
-                var dx = (ball.x + bvx * lead) - this.x;
-                var dy = (ball.y + bvy * lead) - this.y;
-                this.angle = Math.atan2(dy, dx) * 180 / Math.PI;
             }
             super.move();
         }
@@ -120,6 +163,43 @@ class Fielder extends Player {
 
 class Pitcher extends Fielder {
     move(field_, batter, runners, fielders, ball, sbo_counter) {
+        const humanPitching = sbo_counter.score_counter.turn !== MY_TEAM_INDEX;
+
+        if (!ball.alive && !batter.active) {
+            // 投球前は、マウンドの白い棒（pitcher_line）の中だけ左右に移動できる
+            const line = field_.items.pitcher_line;
+            const minX = Math.min(line.x1, line.x2);
+            const maxX = Math.max(line.x1, line.x2);
+            if (humanPitching) {
+                if (!keyIsDown(77)) { // 牽制(M)の操作中は動かさない
+                    if (keyIsDown(65) || keyIsDown(LEFT_ARROW)) { this.x -= 2; }
+                    if (keyIsDown(68) || keyIsDown(RIGHT_ARROW)) { this.x += 2; }
+                }
+            } else {
+                // コンピューターも投球までの間、少しだけ左右に動く
+                this.x += (Math.random() - 0.5) * 1.5;
+            }
+            if (this.x < minX) { this.x = minX; }
+            if (this.x > maxX) { this.x = maxX; }
+            return;
+        }
+
+        if (batter.is_hit && humanPitching) {
+            // 打たれた後は、上下左右キーでピッチャーを自由に動かせる
+            const speed = 3;
+            if (keyIsDown(87) || keyIsDown(UP_ARROW)) { this.y -= speed; }
+            if (keyIsDown(83) || keyIsDown(DOWN_ARROW)) { this.y += speed; }
+            if (keyIsDown(65) || keyIsDown(LEFT_ARROW)) { this.x -= speed; }
+            if (keyIsDown(68) || keyIsDown(RIGHT_ARROW)) { this.x += speed; }
+            if (this.x < 0) { this.x = 0; } else if (this.x > CANVAS_WIDTH) { this.x = CANVAS_WIDTH; }
+            if (this.y < 0) { this.y = 0; } else if (this.y > CANVAS_HEIGHT) { this.y = CANVAS_HEIGHT; }
+            // 移動は自分で操作するので、追いかける動きは行わず、拾う・持つ・送球待ちの判定だけ共通処理に任せる
+            if ((batter.is_hit || ball.is_thrown) && ball.alive) {
+                handleBallPickup(this, field_, batter, runners, fielders, ball, sbo_counter);
+            }
+            return;
+        }
+
         // 元のコードは `a < b < c` という誤った連鎖比較になっており、正しく範囲判定できていなかった
         if (fielders.get('short').init_x < ball.x && ball.x < fielders.get('second').init_x) {
             super.move(field_, batter, runners, fielders, ball, sbo_counter);
@@ -131,14 +211,19 @@ class First extends Player {
     constructor(init_x, init_y, radius=6) {
         super(init_x, init_y, radius);
         this.holding_ball = false;
+        this.coverTarget = null;
     }
 
     reset() {
         super.reset();
         this.holding_ball = false;
+        this.coverTarget = null;
     }
 
     move(field_, batter, runners, fielders, ball, sbo_counter) {
+        if (moveTowardCover(this, fielders)) {
+            return;
+        }
         if (this.holding_ball) { // 牽制球などを保持中。走者に触れるか、走者が塁に着くまで待つ
             handleTagPlay(this, 1, field_, batter, runners, fielders, ball, sbo_counter);
             return;
@@ -215,6 +300,9 @@ function handleTagPlay(fielder, targetBase, field_, batter, runners, fielders, b
 
 class Second extends Fielder {
     move(field_, batter, runners, fielders, ball, sbo_counter) {
+        if (moveTowardCover(this, fielders)) {
+            return;
+        }
         if (this.holding_ball) { // 送球を保持中。走者に触れるか、走者が塁に着くまで待つ
             handleTagPlay(this, 2, field_, batter, runners, fielders, ball, sbo_counter);
             return;
@@ -240,6 +328,9 @@ class Second extends Fielder {
 
 class Short extends Fielder {
     move(field_, batter, runners, fielders, ball, sbo_counter) {
+        if (moveTowardCover(this, fielders)) {
+            return;
+        }
         if (ball.x < field_.items.base_second.x) {
             super.move(field_, batter, runners, fielders, ball, sbo_counter);
         } else {
@@ -260,6 +351,9 @@ class Short extends Fielder {
 
 class Third extends Fielder {
     move(field_, batter, runners, fielders, ball, sbo_counter) {
+        if (moveTowardCover(this, fielders)) {
+            return;
+        }
         if (this.holding_ball) { // 送球を保持中。走者に触れるか、走者が塁に着くまで待つ
             handleTagPlay(this, 3, field_, batter, runners, fielders, ball, sbo_counter);
             return;
@@ -290,6 +384,9 @@ class Third extends Fielder {
 
 class Catcher extends Fielder {
     move(field_, batter, runners, fielders, ball, sbo_counter) {
+        if (moveTowardCover(this, fielders)) {
+            return;
+        }
         if (this.holding_ball) { // 送球を保持中。走者に触れるか、走者が塁に着くまで待つ
             handleTagPlay(this, 4, field_, batter, runners, fielders, ball, sbo_counter);
             return;
@@ -378,10 +475,12 @@ class Fielders {
             third: new Third(field_.items.base_third.x, field_.items.base_third.y - 50), // 三塁手
         }
         this.someome_has_ball = false;
+        this.holder = null; // 現在ボールを持っている野手（手動送球・ベースカバーの割り当てに使う）
     }
 
     reset() {
         this.someome_has_ball = false;
+        this.holder = null;
         for (let key in this.fielders) {
             this.fielders[key].reset();
         }
@@ -391,21 +490,73 @@ class Fielders {
         return this.fielders[key];
     }
 
+    // targetの塁の座標を返す。1=一塁, 2=二塁, 3=三塁, 4=本塁
+    basePosition(target, field_) {
+        if (target === 1) {
+            return { x: field_.items.base_first.x - field_.items.base_first.radius, y: field_.items.base_first.y - field_.items.base_first.radius * 2 };
+        } else if (target === 2) {
+            return { x: field_.items.base_second.x, y: field_.items.base_second.y - field_.items.base_second.radius };
+        } else if (target === 3) {
+            return { x: field_.items.base_third.x + field_.items.base_third.radius, y: field_.items.base_third.y - field_.items.base_third.radius * 2 };
+        }
+        return { x: field_.items.base_home.x, y: field_.items.base_home.y };
+    }
+
     // 投球前にピッチャーが牽制球を投げる。targetは1(一塁)/2(二塁)/3(三塁)
     pickoff(target, field_, ball) {
         const pitcher = this.fielders.pitcher;
-        let targetX, targetY;
-        if (target === 1) {
-            targetX = field_.items.base_first.x - field_.items.base_first.radius;
-            targetY = field_.items.base_first.y - field_.items.base_first.radius * 2;
-        } else if (target === 2) {
-            targetX = field_.items.base_second.x;
-            targetY = field_.items.base_second.y - field_.items.base_second.radius;
-        } else {
-            targetX = field_.items.base_third.x + field_.items.base_third.radius;
-            targetY = field_.items.base_third.y - field_.items.base_third.radius * 2;
+        const pos = this.basePosition(target, field_);
+        ball.throwFrom(pitcher.x, pitcher.y, pos.x, pos.y);
+    }
+
+    // ボールを持っている野手が、選んだ塁(1〜4)へ手動で送球する
+    manualThrow(target, field_, ball) {
+        if (!this.holder) {
+            return;
         }
-        ball.throwFrom(pitcher.x, pitcher.y, targetX, targetY);
+        const pos = this.basePosition(target, field_);
+        ball.throwFrom(this.holder.x, this.holder.y, pos.x, pos.y);
+        this.someome_has_ball = false;
+        this.holder = null;
+    }
+
+    // ボールを拾った野手が決まった直後に呼ぶ。各塁について、近くに誰もいなければ
+    // （ボールを持っている野手を除く）最も近い野手をそこへ向かわせる
+    assignCoverage(field_) {
+        const bases = [
+            { x: field_.items.base_first.x, y: field_.items.base_first.y },
+            { x: field_.items.base_second.x, y: field_.items.base_second.y },
+            { x: field_.items.base_third.x, y: field_.items.base_third.y },
+            { x: field_.items.base_home.x, y: field_.items.base_home.y },
+        ];
+        const COVER_RADIUS = 40;
+        // ピッチャーは操作対象になるため、ベースカバーの割り当て対象からは除く
+        const eligible = Object.keys(this.fielders)
+            .filter(key => key !== 'pitcher')
+            .map(key => this.fielders[key]);
+        const assignedThisRound = new Set();
+        for (const base of bases) {
+            const covered = eligible.some(f => Math.hypot(f.x - base.x, f.y - base.y) < COVER_RADIUS);
+            if (covered) {
+                continue;
+            }
+            let nearest = null;
+            let nearestDist = Infinity;
+            for (const f of eligible) {
+                if (f === this.holder || assignedThisRound.has(f)) {
+                    continue;
+                }
+                const d = Math.hypot(f.x - base.x, f.y - base.y);
+                if (d < nearestDist) {
+                    nearestDist = d;
+                    nearest = f;
+                }
+            }
+            if (nearest) {
+                nearest.coverTarget = { x: base.x, y: base.y };
+                assignedThisRound.add(nearest);
+            }
+        }
     }
 
     move(field_, batter, runners, ball, sbo_counter) {
