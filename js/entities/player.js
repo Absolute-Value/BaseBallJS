@@ -29,10 +29,20 @@ class Player {
 // 今のプレーを終える共通処理。打者(=走者)が塁上に残っていても、is_hitは必ず解除する。
 // （is_hitが残ったままだと、次に投げられる投球を「打球がまだ生きている」と誤認してしまい、
 // 　ピッチャーが投球をその場で拾って処理する、通常の投球判定が行われない等の不具合が起きる）
-function concludePlay(batter, fielders) {
+// アウトになった場合はsbo_counter.out()側で既にカウントがリセットされているが、
+// セーフで終わる場合（出塁した等）はここでリセットしないと、次の打者にストライク・ボールの
+// カウントが引き継がれてしまう。
+function concludePlay(batter, fielders, sbo_counter) {
+    // 打球によるプレー（is_hit）が決着した場合だけカウントをリセットする。
+    // 牽制やファウルの延長処理など、打者がまだ同じ打席の途中で呼ばれる場合は
+    // ストライク・ボールのカウントを消してはいけない。
+    const wasLiveAtBat = batter.is_hit;
     batter.is_hit = false;
     fielders.holder = null;
     fielders.reset();
+    if (sbo_counter && wasLiveAtBat) {
+        sbo_counter.reset();
+    }
 }
 
 // ベースカバーの割り当て(coverTarget)が入っていれば、そこへ向かって移動する。
@@ -112,7 +122,7 @@ function handleBallPickup(fielder, field_, batter, runners, fielders, ball, sbo_
             // 誰も進塁しようとしていない → 送球せずそのままプレーを終える
             ball.alive = false;
             fielders.someome_has_ball = false;
-            concludePlay(batter, fielders);
+            concludePlay(batter, fielders, sbo_counter);
             return true;
         }
         ball.speed = 4;
@@ -311,7 +321,7 @@ function handleTagPlay(fielder, targetBase, field_, batter, runners, fielders, b
     if (!runner) {
         // 盗塁などタッチ対象の走者がいない送球だった → そのままプレー終了
         fielder.holding_ball = false;
-        concludePlay(batter, fielders);
+        concludePlay(batter, fielders, sbo_counter);
         return true;
     }
     const forced = isForceOut(batter, runners, targetBase - 1);
@@ -326,7 +336,7 @@ function handleTagPlay(fielder, targetBase, field_, batter, runners, fielders, b
         ball.alive = true;
         fielders.holder = null;
         if (!handleBallPickup(fielder, field_, batter, runners, fielders, ball, sbo_counter)) {
-            concludePlay(batter, fielders); // 念のため（通常はここに来ない）
+            concludePlay(batter, fielders, sbo_counter); // 念のため（通常はここに来ない）
         }
         return true;
     }

@@ -186,7 +186,7 @@ function draw() {
     // （走者が塁の間を走っている最中に発動すると、守備陣が初期位置へ戻ってしまうので待つ）
     if (ball.alive && ball.idle_count > BALL_STUCK_LIMIT && !runners.list.some(r => r.moving)) {
         ball.alive = false;
-        concludePlay(batter, fielders);
+        concludePlay(batter, fielders, sbo_counter);
     }
 
     // プレーが完全に終わり、打者(=走者)が塁上で静止していたら、専用のランナー枠に引き継いで
