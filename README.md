@@ -1,7 +1,9 @@
 # BaseBall Game for JavaScript
 ![JavaScript][JavaScript.js]
 
-Copilotを試してたら楽しくなって作ってしまった[コチラ](https://github.com/Absolute-Value/BaseBallGame)の野球ゲームのpythonコードをJavaScriptに移行して、  
+Copilotを試してたら楽しくなって作ってしまった[コチラ](https://github.com/Absolute-Value/BaseBallGame)の野球ゲームのpythonコードをJavaScriptに移行しました。
+それをさらに、Claudeを使って改善しました。
+
 [コチラのリンク](https://absolute-value.github.io/blogs/BaseBallGame.html)から遊べます（未完成）。
 
 * [非常用リンク](https://absolute-value.github.io/BaseBallJS/)
