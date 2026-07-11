@@ -30,6 +30,38 @@ function randomPitchWait() {
     return Math.floor(Math.random() * 120) + 60;
 }
 
+// 相手チーム（CPU）の打者を操作する。完璧ではなく、たまに悪い球にも手を出したり、
+// 良い球を見逃したりする簡易的なAI
+function cpuBatting(field_, batter, ball) {
+    if (batter.is_hit || !ball.alive || !ball.is_pitch) {
+        return;
+    }
+    if (!batter.cpu_decided) {
+        // ボールが打席に近づいてきたら、その球を振るかどうかを1回だけ判断する
+        const distToPlate = Math.hypot(ball.x - field_.items.base_home.x, ball.y - field_.items.base_home.y);
+        if (distToPlate < 90) {
+            batter.cpu_decided = true;
+            const inZone = circleCollision(ball.x, ball.y, ball.radius, field_.items.dirt_home.x, field_.items.dirt_home.y, field_.items.dirt_home.radius / 2);
+            const swingChance = inZone ? 0.75 : 0.2; // ゾーン内でも見逃す・ゾーン外でも振ることがある
+            if (Math.random() < swingChance) {
+                batter.cpu_swing_frames = Math.floor(Math.random() * 8) + 4; // 4〜11フレームほど振る（タイミングも完璧ではない）
+            }
+        }
+    }
+    if (batter.cpu_swing_frames > 0) {
+        batter.swing();
+        batter.cpu_swing_frames -= 1;
+    } else {
+        batter.swing_back();
+    }
+}
+
+// 新しい投球が始まるたびに、CPU打者の判断状態をリセットする
+function resetCpuBatting(batter) {
+    batter.cpu_decided = false;
+    batter.cpu_swing_frames = 0;
+}
+
 // 攻守交代のたびに、攻撃側チームと守備側チームの色を入れ替える
 function updateTeamColors() {
     const turn = sbo_counter.score_counter.turn;
@@ -77,6 +109,7 @@ function draw() {
                 var speedMode = up ? 'slow' : down ? 'fast' : 'normal';
                 var pitcher = fielders.get('pitcher');
                 ball.pitch(speedMode, pitcher.x, pitcher.y); // マウンド上の現在位置から投げる
+                resetCpuBatting(batter); // 新しい投球なので、相手打者(CPU)の判断もやり直す
                 // 投球に使ったNキーを離すまでは、そのままスイングに使われないようにする
                 suppress_swing = true;
             }
@@ -122,6 +155,9 @@ function draw() {
         } else {
             batter.swing_back();
         }
+    } else if (humanPitching) {
+        // 自分の守備中は、相手チームの打者をCPUが操作する（完璧ではない打撃AI）
+        cpuBatting(field_, batter, ball);
     }
 
     n_was_down = n_down;
