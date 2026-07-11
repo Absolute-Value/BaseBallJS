@@ -68,23 +68,16 @@ function draw() {
     var waitingToPitch = !ball.alive && !batter.active;
     if (waitingToPitch) {
         if (humanPitching) {
+            // 自分の守備中は、自動では投げない。必ずNキーで自分から投球する
             if (keyIsDown(77)) { // M: AWD+Mで牽制球（D=一塁、W=二塁、A=三塁）
                 if (right) { fielders.pickoff(1, field_, ball); }
                 else if (up) { fielders.pickoff(2, field_, ball); }
                 else if (left) { fielders.pickoff(3, field_, ball); }
-                pitch_wait_timer = randomPitchWait(); // 牽制した場合は投球までの間をとり直す
-            } else if (n_pressed) { // N: すぐに投球する。W=遅い球、S=速い球、なにもなしで中くらいの速さ
+            } else if (n_pressed) { // N: 投球する。W=遅い球、S=速い球、なにもなしで中くらいの速さ
                 var speedMode = up ? 'slow' : down ? 'fast' : 'normal';
                 ball.pitch(speedMode);
                 // 投球に使ったNキーを離すまでは、そのままスイングに使われないようにする
                 suppress_swing = true;
-            } else {
-                // Nキーが押されなければ、ランダムな時間が経った後にピッチャーが自動で投げる
-                pitch_wait_timer -= 1;
-                if (pitch_wait_timer <= 0) {
-                    var speedMode = up ? 'slow' : down ? 'fast' : 'normal';
-                    ball.pitch(speedMode);
-                }
             }
         } else {
             // 相手チームの投球は操作できない。ランダムな間を置いて普通の球を自動で投げる
