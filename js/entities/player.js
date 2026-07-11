@@ -224,6 +224,11 @@ class First extends Player {
         if (moveTowardCover(this, fielders)) {
             return;
         }
+        if (fielders.holder === this) {
+            // フォースアウトの後、併殺を狙って持ち続けている・投げ先を決めている最中
+            handleBallPickup(this, field_, batter, runners, fielders, ball, sbo_counter);
+            return;
+        }
         if (this.holding_ball) { // 牽制球などを保持中。走者に触れるか、走者が塁に着くまで待つ
             handleTagPlay(this, 1, field_, batter, runners, fielders, ball, sbo_counter);
             return;
@@ -261,10 +266,27 @@ class First extends Player {
     }
 }
 
-// 送球を捕球しても、それだけでは走者をアウトにしない。
-// 捕球後は野手がその場でボールを持ち続け、実際に走者（打者自身の場合も含む）へ触れたときだけアウトにする。
-// 走者がタッチされる前に塁へ到達すればセーフ。捕球判定がないと送球が画面上を転がり続けてしまうため、
-// 捕球自体はここで確定させる。
+// originBase(1〜3)にいた走者が、次の塁へ進まざるを得ないフォースプレーの状況かどうかを判定する。
+// 打者がヒットして走者になっている間（is_hit）に、1〜originBase-1の塁がすべて
+// 別の走者で埋まっていれば、その走者は後ろの走者（最終的には打者）に押し出されるので
+// タッチしなくても塁に触れる（送球が届く）だけでアウトになる。
+function isForceOut(batter, runners, originBase) {
+    if (!batter.is_hit) {
+        return false; // 盗塁など、打球が絡まない場面はフォースプレーにならない
+    }
+    for (let b = 1; b < originBase; b++) {
+        if (!runners.list.some(r => r.active && r.baseIndex === b)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// 送球を捕球しても、それだけでは必ずしも走者をアウトにしない。
+// フォースプレー（後ろの走者に押し出されて進まざるを得ない）なら、塁に送球が届いた時点でアウト。
+// そうでなければ、捕球後は野手がその場でボールを持ち続け、実際に走者（打者自身の場合も含む）へ
+// 触れたときだけアウトにする。走者がタッチされる前に塁へ到達すればセーフ。
+// 捕球判定がないと送球が画面上を転がり続けてしまうため、捕球自体はここで確定させる。
 function handleTagPlay(fielder, targetBase, field_, batter, runners, fielders, ball, sbo_counter) {
     if (!fielder.holding_ball) {
         if (!circleCollision(ball.x, ball.y, ball.radius, fielder.x, fielder.y, fielder.radius)) {
@@ -281,18 +303,20 @@ function handleTagPlay(fielder, targetBase, field_, batter, runners, fielders, b
         concludePlay(batter, fielders);
         return true;
     }
-    if (circleCollision(runner.x, runner.y, runner.radius, fielder.x, fielder.y, fielder.radius)) {
-        // ボールを持った野手が実際に走者へ触れたのでアウト
+    const forced = isForceOut(batter, runners, targetBase - 1);
+    const tagged = circleCollision(runner.x, runner.y, runner.radius, fielder.x, fielder.y, fielder.radius);
+    if (forced || tagged) {
+        // フォースプレーなら塁に触れるだけでアウト。フォースでなければ実際にタッチできたのでアウト
         sbo_counter.out();
         runner.reset();
         fielder.holding_ball = false;
-        concludePlay(batter, fielders);
-        return true;
-    }
-    if (!runner.moving) {
-        // タッチされる前に塁へ到達できたのでセーフ
-        fielder.holding_ball = false;
-        concludePlay(batter, fielders);
+        // まだ他に刺せる走者（併殺の相方）がいるかもしれないので、まだプレーを終えず、
+        // 同じ野手がそのまま持つ／別の塁へ投げるかの判断に戻す（人間の守備ならWASD+Mで自分で投げる）
+        ball.alive = true;
+        fielders.holder = null;
+        if (!handleBallPickup(fielder, field_, batter, runners, fielders, ball, sbo_counter)) {
+            concludePlay(batter, fielders); // 念のため（通常はここに来ない）
+        }
         return true;
     }
     return true; // 走者はまだ到達しておらずタッチもできていない。野手はボールを持って待つ
@@ -301,6 +325,11 @@ function handleTagPlay(fielder, targetBase, field_, batter, runners, fielders, b
 class Second extends Fielder {
     move(field_, batter, runners, fielders, ball, sbo_counter) {
         if (moveTowardCover(this, fielders)) {
+            return;
+        }
+        if (fielders.holder === this) {
+            // フォースアウトの後、併殺を狙って持ち続けている・投げ先を決めている最中
+            handleBallPickup(this, field_, batter, runners, fielders, ball, sbo_counter);
             return;
         }
         if (this.holding_ball) { // 送球を保持中。走者に触れるか、走者が塁に着くまで待つ
@@ -354,6 +383,11 @@ class Third extends Fielder {
         if (moveTowardCover(this, fielders)) {
             return;
         }
+        if (fielders.holder === this) {
+            // フォースアウトの後、併殺を狙って持ち続けている・投げ先を決めている最中
+            handleBallPickup(this, field_, batter, runners, fielders, ball, sbo_counter);
+            return;
+        }
         if (this.holding_ball) { // 送球を保持中。走者に触れるか、走者が塁に着くまで待つ
             handleTagPlay(this, 3, field_, batter, runners, fielders, ball, sbo_counter);
             return;
@@ -385,6 +419,11 @@ class Third extends Fielder {
 class Catcher extends Fielder {
     move(field_, batter, runners, fielders, ball, sbo_counter) {
         if (moveTowardCover(this, fielders)) {
+            return;
+        }
+        if (fielders.holder === this) {
+            // フォースアウトの後、併殺を狙って持ち続けている・投げ先を決めている最中
+            handleBallPickup(this, field_, batter, runners, fielders, ball, sbo_counter);
             return;
         }
         if (this.holding_ball) { // 送球を保持中。走者に触れるか、走者が塁に着くまで待つ
