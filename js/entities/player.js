@@ -336,9 +336,15 @@ class Second extends Fielder {
             handleTagPlay(this, 2, field_, batter, runners, fielders, ball, sbo_counter);
             return;
         }
-        if (ball.x > field_.items.base_second.x) {
+        // 走者が二塁へ向かっている間は、ボールの位置に関わらず必ず二塁をカバーする
+        // （ボールの左右だけで守備位置を決めていたため、フォースの送球が来ているのに
+        // 　二塁を離れてしまい、誰もいない二塁に送球されることがあった）
+        const runnerHeadingHere = runners.list.some(r => r.active && r.moving && r.target === 2);
+        if (!runnerHeadingHere && ball.x > field_.items.base_second.x) {
             super.move(field_, batter, runners, fielders, ball, sbo_counter);
-        } else if ((batter.is_hit || ball.is_thrown) && ball.alive) {
+            return;
+        }
+        if ((batter.is_hit || ball.is_thrown) && ball.alive) {
             if (handleTagPlay(this, 2, field_, batter, runners, fielders, ball, sbo_counter)) {
                 return;
             }
