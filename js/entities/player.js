@@ -264,10 +264,11 @@ class Third extends Fielder {
             handleTagPlay(this, 3, field_, batter, runners, fielders, ball, sbo_counter);
             return;
         }
-        // 走者が三塁へ向かっている間は、ボールの位置に関わらず必ず三塁をカバーする
-        // （ボールの左右だけで守備位置を決めていたため、走者が向かっているのに誰もいないことがあった）
-        const runnerHeadingHere = runners.list.some(r => r.active && r.moving && r.target === 3);
-        if (!runnerHeadingHere && ball.x < field_.items.base_home.x) {
+        // 二塁より先に走者がいる間（二塁到達後）は、ボールの位置に関わらず必ず三塁をカバーする
+        // （三塁へ向かって走り出した瞬間だけをカバー条件にしていたため、二塁にいる間は
+        // 　三塁を離れてしまい、誰もいない三塁に送球されることがあった）
+        const shouldCoverThird = runners.list.some(r => r.active && r.baseIndex >= 2);
+        if (!shouldCoverThird && ball.x < field_.items.base_home.x) {
             super.move(field_, batter, runners, fielders, ball, sbo_counter);
             return;
         }
@@ -293,7 +294,14 @@ class Catcher extends Fielder {
             handleTagPlay(this, 4, field_, batter, runners, fielders, ball, sbo_counter);
             return;
         }
-        if (ball.alive && !batter.is_hit) { // バッターが打たなかったとき
+        if (ball.alive && !batter.is_hit && !ball.is_thrown) { // 投球を待ち構える（盗塁やホームへの送球はここに含めない）
+            // バットに当たらないよう、投球を待つ間は本塁より少し後ろの定位置へ戻す
+            // （牽制や三塁走者への備えで本塁ちょうどまで出ていても、実際に投球が来たら下がる）
+            const restY = field_.items.base_home.y + 30;
+            if (Math.abs(this.y - restY) > 0.5) {
+                const nudge_step = Math.min(Math.abs(this.y - restY), 2);
+                this.y += this.y < restY ? nudge_step : -nudge_step;
+            }
             if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) {
                 if (ball.is_strike) {
                     sbo_counter.strike();
@@ -332,21 +340,24 @@ class Catcher extends Fielder {
             }
             return;
         }
-        // 走者がホームへ向かっている間は、ボールの位置に関わらず必ずホームをカバーする
-        // （追いかける処理に任せていたため、走者が向かっているのに誰もいないことがあった）
+        // ホームへ向かう走者がいれば、タッグプレーとして処理する
         const runnerHeadingHere = runners.list.some(r => r.active && r.moving && r.target === 4);
         if ((batter.is_hit || ball.is_thrown) && ball.alive && runnerHeadingHere &&
             handleTagPlay(this, 4, field_, batter, runners, fielders, ball, sbo_counter)) { // ホームへ突入する走者へのタッグプレー
             return; // handleTagPlay内で捕球・タッチ判定・保留を処理済み
         }
-        if (!runnerHeadingHere && (field_.items.base_home.y+field_.items.base_second.y)/2 < ball.y) { // バッターが打ったときは、他の野手と同じ動き
-            super.move(field_, batter, runners, fielders, ball, sbo_counter);
-            return;
-        }
-        // ホームをカバーする定位置へ戻る
+        // キャッチャーは打球を追いかけて他の野手のように動き回らない。常にホームのカバー位置へ戻る
+        // （打球を追いかけさせていると、ホームを離れてしまい誰もいないホームに送球されてしまう）
+        // 牽制球が飛んでいる間や三塁に走者がいる間だけ、送球を確実に捕れるよう本塁の座標ちょうどまで出る。
+        // それ以外はバットに当たらないよう本塁より少し後ろで待つ。
+        // ball.is_thrownは実際に投げ直すまでリセットされないため、送球が終わった後も残り続ける。
+        // ball.aliveも一緒に見て、実際に送球が飛んでいる最中かどうかを判定する
+        const throwInFlight = ball.is_thrown && ball.alive;
+        const runnerOnThird = runners.list.some(r => r.active && r.baseIndex === 3);
+        const targetY = (throwInFlight || runnerOnThird) ? field_.items.base_home.y : field_.items.base_home.y + 30;
         if (this.speed < 2) { this.speed += 0.05; } // 走るスピードを徐々に上げる
         var dx = field_.items.base_home.x - this.x;
-        var dy = (field_.items.base_home.y + 30) - this.y;
+        var dy = targetY - this.y;
         var distance = Math.sqrt(dx ** 2 + dy ** 2);
         if (distance > 1) {
             this.angle = Math.atan2(dy, dx) * 180 / Math.PI;
@@ -360,7 +371,7 @@ class Fielders {
     constructor(field_) {
         this.fielders = {
             pitcher: new Pitcher(field_.items.pitcher_mound.x, field_.items.pitcher_mound.y), // ピッチャー
-            catcher: new Catcher(field_.items.base_home.x, field_.items.base_home.y + 30), // キャッチャー
+            catcher: new Catcher(field_.items.base_home.x, field_.items.base_home.y + 30), // キャッチャー（バットに当たらないよう本塁より少し後ろが定位置）
             first: new First(field_.items.base_first.x, field_.items.base_first.y - 50), // 一塁手
             second: new Second(field_.items.base_second.x + 120, field_.items.base_second.y + 10), // 二塁手
             short: new Short(field_.items.base_second.x - 120, field_.items.base_second.y + 10), // 遊撃手
