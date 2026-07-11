@@ -62,6 +62,11 @@ function handleBallPickup(fielder, field_, batter, runners, fielders, ball, sbo_
     if (!circleCollision(ball.x, ball.y, ball.radius, fielder.x, fielder.y, fielder.radius)) {
         return false;
     }
+    if (fielder === fielders.last_thrower && fielders.throw_cooldown > 0) {
+        // 投げた直後の1フレームの移動量では捕球判定の範囲から抜けきらないことがあるため、
+        // 投げた本人だけはしばらく自分の送球を捕り直せないようにする
+        return false;
+    }
     if (ball.is_foul) {
         ball.alive = false;
         sbo_counter.foul();
@@ -118,6 +123,7 @@ function handleBallPickup(fielder, field_, batter, runners, fielders, ball, sbo_
         // （trueのままだと誰も追いかけなくなり、送球が誰にも捕られず転がり続ける）
         fielders.someome_has_ball = false;
         fielders.holder = null;
+        fielders.markThrown(fielder);
     }
     return true;
 }
@@ -291,6 +297,11 @@ function handleTagPlay(fielder, targetBase, field_, batter, runners, fielders, b
     if (!fielder.holding_ball) {
         if (!circleCollision(ball.x, ball.y, ball.radius, fielder.x, fielder.y, fielder.radius)) {
             return false; // まだ送球が届いていない
+        }
+        if (fielder === fielders.last_thrower && fielders.throw_cooldown > 0) {
+            // 投げた直後の1フレームの移動量では捕球判定の範囲から抜けきらないことがあるため、
+            // 投げた本人だけはしばらく自分の送球を捕り直せないようにする
+            return false;
         }
         fielder.holding_ball = true;
         ball.alive = false;
@@ -467,6 +478,7 @@ class Catcher extends Fielder {
                     ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
                     ball.is_thrown = true;
                     ball.is_pitch = false;
+                    fielders.markThrown(this);
                 } else {
                     ball.alive = false;
                     fielders.reset();
@@ -521,11 +533,15 @@ class Fielders {
         }
         this.someome_has_ball = false;
         this.holder = null; // 現在ボールを持っている野手（手動送球・ベースカバーの割り当てに使う）
+        this.last_thrower = null; // 直前に送球した野手（投げた直後に自分で捕り直してしまうのを防ぐ）
+        this.throw_cooldown = 0;
     }
 
     reset() {
         this.someome_has_ball = false;
         this.holder = null;
+        this.last_thrower = null;
+        this.throw_cooldown = 0;
         for (let key in this.fielders) {
             this.fielders[key].reset();
         }
@@ -533,6 +549,15 @@ class Fielders {
 
     get(key) {
         return this.fielders[key];
+    }
+
+    // 送球した野手を記録する。ボールは投げた直後、1フレームの移動量では
+    // 投げた野手自身の捕球判定の範囲から抜け出せないことがあり、そのままだと
+    // 自分の送球を即座に捕り直して速度が0に戻り、その場で止まり続けてしまう。
+    // そのため、送球後しばらくは投げた本人だけ捕球できないようにする。
+    markThrown(fielder) {
+        this.last_thrower = fielder;
+        this.throw_cooldown = 10;
     }
 
     // targetの塁の座標を返す。1=一塁, 2=二塁, 3=三塁, 4=本塁
@@ -552,6 +577,7 @@ class Fielders {
         const pitcher = this.fielders.pitcher;
         const pos = this.basePosition(target, field_);
         ball.throwFrom(pitcher.x, pitcher.y, pos.x, pos.y);
+        this.markThrown(pitcher);
     }
 
     // ボールを持っている野手が、選んだ塁(1〜4)へ手動で送球する
@@ -559,10 +585,12 @@ class Fielders {
         if (!this.holder) {
             return;
         }
+        const thrower = this.holder;
         const pos = this.basePosition(target, field_);
-        ball.throwFrom(this.holder.x, this.holder.y, pos.x, pos.y);
+        ball.throwFrom(thrower.x, thrower.y, pos.x, pos.y);
         this.someome_has_ball = false;
         this.holder = null;
+        this.markThrown(thrower);
     }
 
     // ボールを拾った野手が決まった直後に呼ぶ。各塁について、近くに誰もいなければ
@@ -605,6 +633,11 @@ class Fielders {
     }
 
     move(field_, batter, runners, ball, sbo_counter) {
+        if (this.throw_cooldown > 0) {
+            this.throw_cooldown -= 1;
+        } else {
+            this.last_thrower = null;
+        }
         for (let key in this.fielders) {
             this.fielders[key].move(field_, batter, runners, this, ball, sbo_counter);
         }
