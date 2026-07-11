@@ -95,6 +95,7 @@ class Fielder extends Player {
                         ball.speed = 4;
                         ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
                         ball.is_thrown = true;
+                        ball.is_pitch = false;
                         // 投げた後はボールを離すので、他の野手が再び追いかけられるようにする
                         // （trueのままだと誰も追いかけなくなり、送球が誰にも捕られず転がり続ける）
                         fielders.someome_has_ball = false;
@@ -127,17 +128,31 @@ class Pitcher extends Fielder {
 }
 
 class First extends Player {
+    constructor(init_x, init_y, radius=6) {
+        super(init_x, init_y, radius);
+        this.holding_ball = false;
+    }
+
+    reset() {
+        super.reset();
+        this.holding_ball = false;
+    }
+
     move(field_, batter, runners, fielders, ball, sbo_counter) {
+        if (this.holding_ball) { // 牽制球などを保持中。走者に触れるか、走者が塁に着くまで待つ
+            handleTagPlay(this, 1, field_, batter, runners, fielders, ball, sbo_counter);
+            return;
+        }
         if ((batter.is_hit || ball.is_thrown) && ball.alive) {
             if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) {
-                ball.alive = false;
-                if (batter.baseIndex < 1) { // まだ一塁に到達していなければアウト
+                if (batter.baseIndex < 1) { // まだ一塁に到達していなければフォースプレー（タッチ不要でアウト）
+                    ball.alive = false;
                     sbo_counter.out();
                     batter.reset();
                     fielders.reset();
                 } else {
-                    sbo_counter.reset(); // 既に一塁へ到達済みならセーフ。走者としてそのまま残す
-                    concludePlay(batter, fielders);
+                    // 打者は既にセーフ。牽制などで一塁にいる別の走者を刺せるかをタッチプレーとして判定する
+                    handleTagPlay(this, 1, field_, batter, runners, fielders, ball, sbo_counter);
                 }
             } else {
                 if (ball.is_foul && field_.items.base_home.x < ball.x) {
@@ -301,12 +316,19 @@ class Catcher extends Fielder {
                     ball.speed = 4;
                     ball.angle = Math.atan2(dy, dx) * 180 / Math.PI;
                     ball.is_thrown = true;
+                    ball.is_pitch = false;
                 } else {
                     ball.alive = false;
                     fielders.reset();
                 }
-            } else { // 投手の球筋を追う
-                this.x += ball.speed * Math.cos(ball.angle * Math.PI / 180);
+            } else { // 投手の球筋を追う。Y位置は本塁に固定したまま、X位置だけボールに合わせる
+                // （ボールに向かって直接距離を詰めると、本塁に届く前の途中で捕まえてしまい、
+                // 　常にボール判定になってしまうため、あくまでホームで待ち構える）
+                var dx = ball.x - this.x;
+                if (Math.abs(dx) > 0.5) {
+                    var step = Math.min(Math.abs(dx), ball.speed + 1);
+                    this.x += dx > 0 ? step : -step;
+                }
             }
             return;
         }
@@ -356,7 +378,24 @@ class Fielders {
 
     get(key) {
         return this.fielders[key];
-    } 
+    }
+
+    // 投球前にピッチャーが牽制球を投げる。targetは1(一塁)/2(二塁)/3(三塁)
+    pickoff(target, field_, ball) {
+        const pitcher = this.fielders.pitcher;
+        let targetX, targetY;
+        if (target === 1) {
+            targetX = field_.items.base_first.x - field_.items.base_first.radius;
+            targetY = field_.items.base_first.y - field_.items.base_first.radius * 2;
+        } else if (target === 2) {
+            targetX = field_.items.base_second.x;
+            targetY = field_.items.base_second.y - field_.items.base_second.radius;
+        } else {
+            targetX = field_.items.base_third.x + field_.items.base_third.radius;
+            targetY = field_.items.base_third.y - field_.items.base_third.radius * 2;
+        }
+        ball.throwFrom(pitcher.x, pitcher.y, targetX, targetY);
+    }
 
     move(field_, batter, runners, ball, sbo_counter) {
         for (let key in this.fielders) {
@@ -498,6 +537,7 @@ class Runners {
         slot.run_speed = 0;
         slot.x = this.batter.x;
         slot.y = this.batter.y;
+        slot.color = this.batter.color; // 攻撃側チームの色を引き継ぐ
         this.batter.reset(); // 打者は打席へ戻る
     }
 

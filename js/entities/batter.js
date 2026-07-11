@@ -58,6 +58,7 @@ class Batter extends Runner {
                 if (triangleCollision(this.bat_points.x1, this.bat_points.y1, this.bat_points.x2, this.bat_points.y2, this.bat_points.x3, this.bat_points.y3, this.ball_top.x, this.ball_top.y) |
                     triangleCollision(this.bat_points.x1, this.bat_points.y1, this.bat_points.x3, this.bat_points.y3, this.bat_points.x4, this.bat_points.y4, this.ball_top.x, this.ball_top.y)) { // 四隅の中に含まれていたら
                     this.is_hit = true;
+                    ball.is_pitch = false; // 打たれたら投球ではなくなるのでカーブは効かなくなる
                     if (this.swing_count == 0) { // バットが静止していたら（バント）
                         ball.speed = 0.5 + Math.random() * 0.5;
                         ball.angle = this.angle - ball.angle;
@@ -67,6 +68,7 @@ class Batter extends Runner {
                     }
                 } else if (circleCollision(ball.x, ball.y, ball.radius, this.bat_top_x, this.bat_top_y, this.bat_width)) { // バットの先端に当たったら
                     this.is_hit = true;
+                    ball.is_pitch = false; // 打たれたら投球ではなくなるのでカーブは効かなくなる
                     if (this.swing_count == 0) { // バットが静止していたら（バント）
                         ball.speed = 0.5 + Math.random() * 0.5;
                     }

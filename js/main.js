@@ -1,6 +1,7 @@
 // p5jsで野球ゲームを作成する
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
+const MY_TEAM_INDEX = 0; // 自チーム = D(青)。表(D攻撃)は自分が打撃、裏(C攻撃)は自分が投球・守備を操作する
 
 function setup() {
     var canvas = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -12,11 +13,35 @@ function setup() {
     ball = new Ball(fielders.get('pitcher').x, fielders.get('pitcher').y); // ボールを作成
     sbo_counter = new SBOCounter();
     sbo_counter.runners = runners; // チェンジ時に走者をクリアできるようにする
+    last_turn = sbo_counter.score_counter.turn;
+    updateTeamColors(); // 表(D)は攻撃=青、守備=赤で開始
+    n_was_down = false;
+    suppress_swing = false;
+    pitch_wait_timer = randomPitchWait();
     frameRate(60);
 }
 
 const BALL_STUCK_LIMIT = 90; // ボールが止まったまま誰にも拾われない状態が続いたら強制的にプレーを終える(フレーム数)
 const FOUL_TIMEOUT = 180; // ファウルと判定されてから、誰も処理しなくても強制的にプレーを終えるまでの時間(フレーム数、60fps換算で3秒)
+
+// ピッチャーが自動で投げるまでに持っている時間をランダムに決める（60fps換算で約1〜3秒）
+function randomPitchWait() {
+    return Math.floor(Math.random() * 120) + 60;
+}
+
+// 攻守交代のたびに、攻撃側チームと守備側チームの色を入れ替える
+function updateTeamColors() {
+    const turn = sbo_counter.score_counter.turn;
+    const battingColor = sbo_counter.score_counter.team_color[turn];
+    const fieldingColor = sbo_counter.score_counter.team_color[1 - turn];
+    batter.color = battingColor;
+    for (const r of runners.list) {
+        r.color = battingColor;
+    }
+    for (const key in fielders.fielders) {
+        fielders.get(key).color = fieldingColor;
+    }
+}
 
 function draw() {
     var up = keyIsDown(87) || keyIsDown(UP_ARROW); // Wキーまたは上キー
@@ -24,32 +49,83 @@ function draw() {
     var left = keyIsDown(65) || keyIsDown(LEFT_ARROW); // Aキーまたは左キー
     var right = keyIsDown(68) || keyIsDown(RIGHT_ARROW); // Dキーまたは右キー
 
-    if (up) { batter.vy -= 1; } // バッターを上に移動
-    if (down) { batter.vy += 1; } // バッターを下に移動
-    if (left) { batter.vx -= 1; } // バッターを左に移動
-    if (right) { batter.vx += 1; } // バッターを右に移動
+    // 自チーム(D/青)が攻撃中なら打撃操作、そうでなければ投球操作を受け付ける
+    var humanBatting = sbo_counter.score_counter.turn === MY_TEAM_INDEX;
+    var humanPitching = !humanBatting;
 
-    // D/右=一塁の走者を選択、W/上=二塁、A/左=三塁、S/下=全員を選択
-    // Mキーで選択した走者を進塁、Nキーでその塁までの範囲で帰塁させる
-    // （打者が一塁へ向かって自動で走っている間の除外はRunners.selectRunners側で行う）
-    if (keyIsDown(77)) { // M
-        runners.tryAdvance(right, up, left, down);
-    }
-    if (keyIsDown(78)) { // N
-        runners.tryRetreat(right, up, left, down);
+    if (humanBatting) {
+        if (up) { batter.vy -= 1; } // バッターを上に移動
+        if (down) { batter.vy += 1; } // バッターを下に移動
+        if (left) { batter.vx -= 1; } // バッターを左に移動
+        if (right) { batter.vx += 1; } // バッターを右に移動
     }
 
-    if (!batter.is_hit) {
-        // 打席中のNキーはスイング
-        if (keyIsDown(78)) {
+    var n_down = keyIsDown(78);
+    var n_pressed = n_down && !n_was_down; // このフレームで新しく押された（押しっぱなしでは反応しない）
+
+    // 投球前（ボールが死んでいて、打者がまだ打席にいる）は、投球そのものを行う番
+    var waitingToPitch = !ball.alive && !batter.active;
+    if (waitingToPitch) {
+        if (humanPitching) {
+            if (keyIsDown(77)) { // M: AWD+Mで牽制球（D=一塁、W=二塁、A=三塁）
+                if (right) { fielders.pickoff(1, field_, ball); }
+                else if (up) { fielders.pickoff(2, field_, ball); }
+                else if (left) { fielders.pickoff(3, field_, ball); }
+                pitch_wait_timer = randomPitchWait(); // 牽制した場合は投球までの間をとり直す
+            } else if (n_pressed) { // N: すぐに投球する。W=遅い球、S=速い球、なにもなしで中くらいの速さ
+                var speedMode = up ? 'slow' : down ? 'fast' : 'normal';
+                ball.pitch(speedMode);
+                // 投球に使ったNキーを離すまでは、そのままスイングに使われないようにする
+                suppress_swing = true;
+            } else {
+                // Nキーが押されなければ、ランダムな時間が経った後にピッチャーが自動で投げる
+                pitch_wait_timer -= 1;
+                if (pitch_wait_timer <= 0) {
+                    var speedMode = up ? 'slow' : down ? 'fast' : 'normal';
+                    ball.pitch(speedMode);
+                }
+            }
+        } else {
+            // 相手チームの投球は操作できない。ランダムな間を置いて普通の球を自動で投げる
+            pitch_wait_timer -= 1;
+            if (pitch_wait_timer <= 0) {
+                ball.pitch('normal');
+            }
+        }
+    } else {
+        pitch_wait_timer = randomPitchWait(); // 次に投球を待つときのための時間を再抽選しておく
+        if (humanBatting) {
+            // D/右=一塁の走者を選択、W/上=二塁、A/左=三塁、S/下=全員を選択
+            // Mキーで選択した走者を進塁、Nキーでその塁までの範囲で帰塁させる
+            if (keyIsDown(77)) { // M
+                runners.tryAdvance(right, up, left, down);
+            }
+            if (keyIsDown(78)) { // N
+                runners.tryRetreat(right, up, left, down);
+            }
+        }
+    }
+
+    if (!n_down) {
+        suppress_swing = false; // Nを離したら、次に押したときは通常通りスイングできる
+    }
+
+    if (humanBatting && !batter.is_hit && ball.alive) {
+        // 投球が来ている間のNキーはスイング（投球に使ったNキーの押しっぱなしでは振らない）
+        if (n_down && !suppress_swing) {
             batter.swing();
         } else {
             batter.swing_back();
         }
     }
 
+    n_was_down = n_down;
+
+    // 投球中はA/Dでカーブさせる（自チームが投球しているときだけ操作できる。曲げすぎないようball.js側で上限を設けている）
+    var curveInput = humanPitching ? ((left ? 1 : 0) - (right ? 1 : 0)) : 0;
+
     batter.move(field_, runners, ball); // バッターを移動
-    ball.move(field_, runners); // ボールを移動（走者が走っている間は次の投球を始めない）
+    ball.move(field_, curveInput); // ボールを移動
     fielders.move(field_, batter, runners, ball, sbo_counter); // 野手を移動
 
     // ファウルになったら、進塁・盗塁を試みていた走者は全員元の塁へ戻す
@@ -75,6 +151,12 @@ function draw() {
     // プレーが完全に終わり、打者(=走者)が塁上で静止していたら、専用のランナー枠に引き継いで
     // 打者自身は次の打者として打席に戻す（そうしないと走者が塁にいる間ずっと打席に誰も現れない）
     runners.handOffBatterIfSettled(ball);
+
+    // 攻守交代が起きたら、選手の色を入れ替える
+    if (sbo_counter.score_counter.turn !== last_turn) {
+        last_turn = sbo_counter.score_counter.turn;
+        updateTeamColors();
+    }
 
     field_.draw(); // フィールドを描画
     runners.draw(); // バッター・ランナーを描画（打者自身がRunnerを兼ねている）
