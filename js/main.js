@@ -13,6 +13,7 @@ function setup() {
     ball = new Ball(fielders.get('pitcher').x, fielders.get('pitcher').y); // ボールを作成
     sbo_counter = new SBOCounter();
     sbo_counter.runners = runners; // チェンジ時に走者をクリアできるようにする
+    sbo_counter.batter = batter; // フォアボールで打者をそのまま一塁の走者にできるようにする
     last_turn = sbo_counter.score_counter.turn;
     updateTeamColors(); // 表(D)は攻撃=青、守備=赤で開始
     n_was_down = false;

@@ -108,7 +108,17 @@ class SBOCounter extends Counter {
     ball() {
         this.counts['B'] += 1;
         if (this.counts['B'] >= 4) {
+            this.walk();
             this.reset();
+        }
+    }
+
+    // フォアボール。打者をそのまま一塁への走者にする（一塁に走者がいれば押し出す）
+    walk() {
+        if (this.batter && this.runners && !this.batter.active) {
+            this.runners.prepareForBatterRunner();
+            this.batter.active = true;
+            this.batter.advance();
         }
     }
 
