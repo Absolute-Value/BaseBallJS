@@ -251,13 +251,13 @@ class First extends Player {
         }
         if ((batter.is_hit || ball.is_thrown) && ball.alive) {
             if (circleCollision(ball.x, ball.y, ball.radius, this.x, this.y, this.radius)) {
-                if (batter.baseIndex < 1) { // まだ一塁に到達していなければフォースプレー（タッチ不要でアウト）
+                if (batter.is_hit && batter.baseIndex < 1) { // 打者が打って、まだ一塁に到達していなければフォースプレー（タッチ不要でアウト）
                     ball.alive = false;
                     sbo_counter.out();
                     batter.reset();
                     fielders.reset();
                 } else {
-                    // 打者は既にセーフ。牽制などで一塁にいる別の走者を刺せるかをタッチプレーとして判定する
+                    // 打者は無関係（牽制など）、または既にセーフ。一塁にいる走者を実際に刺せたかをタッチプレーとして判定する
                     handleTagPlay(this, 1, field_, batter, runners, fielders, ball, sbo_counter);
                 }
             } else {
