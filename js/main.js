@@ -75,7 +75,8 @@ function draw() {
                 else if (left) { fielders.pickoff(3, field_, ball); }
             } else if (n_pressed) { // N: 投球する。W=遅い球、S=速い球、なにもなしで中くらいの速さ
                 var speedMode = up ? 'slow' : down ? 'fast' : 'normal';
-                ball.pitch(speedMode);
+                var pitcher = fielders.get('pitcher');
+                ball.pitch(speedMode, pitcher.x, pitcher.y); // マウンド上の現在位置から投げる
                 // 投球に使ったNキーを離すまでは、そのままスイングに使われないようにする
                 suppress_swing = true;
             }
@@ -83,7 +84,8 @@ function draw() {
             // 相手チームの投球は操作できない。ランダムな間を置いて普通の球を自動で投げる
             pitch_wait_timer -= 1;
             if (pitch_wait_timer <= 0) {
-                ball.pitch('normal');
+                var pitcher = fielders.get('pitcher');
+                ball.pitch('normal', pitcher.x, pitcher.y);
             }
         }
     } else {

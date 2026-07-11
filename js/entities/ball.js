@@ -27,9 +27,10 @@ class Ball {
     }
 
     // ユーザーが投球する。speedModeは 'slow' | 'fast' | 'normal'
-    pitch(speedMode) {
-        this.x = this.init_x;
-        this.y = this.init_y;
+    // x, yを渡すと、そこから投げる（ピッチャーがマウンドの棒の中を移動した位置に合わせるため）
+    pitch(speedMode, x=this.init_x, y=this.init_y) {
+        this.x = x;
+        this.y = y;
         this.speed = speedMode === 'slow' ? 3 : speedMode === 'fast' ? 6.5 : 4.5;
         this.pitch_base_angle = 90 + (Math.random() * 4 - 2); // わずかにランダムなブレを残す
         this.angle = this.pitch_base_angle;
