@@ -1,146 +1,41 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>BaseBall Game</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ナイター・ホームランバトル</title>
         <link rel="stylesheet" href="style.css">
-        <script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.js"></script>
-        <script src="js/field.js"></script>
-        <script src="js/collision.js"></script>
-        <script src="js/entities/player.js"></script>
-        <script src="js/entities/batter.js"></script>
-        <script src="js/entities/ball.js"></script>
-        <script src="js/counter.js"></script>
-        <script src="js/main.js"></script>
     </head>
     <body>
-        <h1>BaseBall Game</h1>
-        <div id="GameCanvas"></div>
-        <p>自チームはD（青）です。表（D攻撃）はあなたが打撃・走塁を操作し、相手（C/赤）の投球は自動で行われます。裏（C攻撃）はあなたが投球を操作し、相手（C/赤）の打撃・走塁は自動で行われます。</p>
-        <!-- 使用方法を表で記載 -->
-        <h2>操作方法（自チームの攻撃中） | Controls</h2>
-        <table>
-            <tr>
-                <th>キー</th>
-                <th>説明</th>
-            </tr>
-            <tr>
-                <td>w / up</td>
-                <td>上へ移動</td>
-            </tr>
-            <tr>
-                <td>s / down</td>
-                <td>下へ移動</td>
-            </tr>
-            <tr>
-                <td>a / left</td>
-                <td>左へ移動</td>
-            </tr>
-            <tr>
-                <td>d / right</td>
-                <td>右へ移動</td>
-            </tr>
-            <tr>
-                <td>N（投球を受けている間）</td>
-                <td>長押しでスイング、途中で離すことでバント</td>
-            </tr>
-            <tr>
-                <td>d / right</td>
-                <td>一塁の走者を選択</td>
-            </tr>
-            <tr>
-                <td>w / up</td>
-                <td>二塁の走者を選択</td>
-            </tr>
-            <tr>
-                <td>a / left</td>
-                <td>三塁の走者を選択</td>
-            </tr>
-            <tr>
-                <td>s / down</td>
-                <td>すべての走者を選択（打者が一塁へ走っている最中を除く）</td>
-            </tr>
-            <tr>
-                <td>選択キー + M</td>
-                <td>選択した走者を1つ先の塁へ進める</td>
-            </tr>
-            <tr>
-                <td>選択キー + N</td>
-                <td>選択した走者を、進塁を始めた塁まで戻す（それより後ろには戻らない）</td>
-            </tr>
-        </table>
-
-        <h2>投球（自チームの守備中） | Pitching</h2>
-        <p>ボールが死んでいて打者が打席にいる間（投球前）は、何もしなければピッチャーがランダムな時間（約1〜3秒）待った後に自動で投球します。以下のキーで、その前に自分から投球したり牽制したりできます。</p>
-        <table>
-            <tr>
-                <th>キー</th>
-                <th>説明</th>
-            </tr>
-            <tr>
-                <td>N</td>
-                <td>（待たずに）すぐ投球する</td>
-            </tr>
-            <tr>
-                <td>N + w / up</td>
-                <td>遅い球を投げる</td>
-            </tr>
-            <tr>
-                <td>N + s / down</td>
-                <td>速い球を投げる</td>
-            </tr>
-            <tr>
-                <td>（Nのみ）</td>
-                <td>中くらいの速さの球を投げる</td>
-            </tr>
-            <tr>
-                <td>a / left, d / right</td>
-                <td>投球中、ボールをカーブさせる（曲がりすぎないよう上限あり）</td>
-            </tr>
-            <tr>
-                <td>d / right + M</td>
-                <td>牽制球を一塁へ投げる</td>
-            </tr>
-            <tr>
-                <td>w / up + M</td>
-                <td>牽制球を二塁へ投げる</td>
-            </tr>
-            <tr>
-                <td>a / left + M</td>
-                <td>牽制球を三塁へ投げる</td>
-            </tr>
-        </table>
-        <p>投球前は、ピッチャーはマウンドの白い棒の中だけ左右（a/d）に動けます。打たれた後は、ピッチャーを上下左右キーで自由に動かせます。</p>
-        <table>
-            <tr>
-                <th>キー</th>
-                <th>説明</th>
-            </tr>
-            <tr>
-                <td>a / left, d / right（投球前）</td>
-                <td>マウンドの白い棒の中でピッチャーを左右に動かす</td>
-            </tr>
-            <tr>
-                <td>w/a/s/d または矢印（打たれた後）</td>
-                <td>ピッチャーを自由に動かす</td>
-            </tr>
-            <tr>
-                <td>d / right + M（誰かがボールを持っている間）</td>
-                <td>一塁へ送球する</td>
-            </tr>
-            <tr>
-                <td>w / up + M（誰かがボールを持っている間）</td>
-                <td>二塁へ送球する</td>
-            </tr>
-            <tr>
-                <td>a / left + M（誰かがボールを持っている間）</td>
-                <td>三塁へ送球する</td>
-            </tr>
-            <tr>
-                <td>s / down + M（誰かがボールを持っている間）</td>
-                <td>本塁へ送球する</td>
-            </tr>
-        </table>
-        <p>ボールを拾った時点で誰もカバーしていない塁があれば、近くの野手が自動でその塁のカバーに入ります。</p>
-        <p>攻守交代すると、攻撃側・守備側チームの色が入れ替わります（表D=攻撃青/守備赤、裏C=攻撃赤/守備青）。</p>
+        <div id="wrap">
+            <canvas id="cv" width="800" height="600"></canvas>
+            <div id="hud">
+                <div class="box"><div class="lbl">得点</div><div class="val" id="hScore">0</div></div>
+                <div class="box"><div class="lbl">HR</div><div class="val" id="hHR" style="color:var(--red)">0</div></div>
+                <div class="box"><div class="lbl">安打</div><div class="val" id="hHits" style="color:var(--blue)">0</div></div>
+                <div class="box"><div class="lbl">B</div><div class="dots" id="hBalls"><span class="d b"></span><span class="d b"></span><span class="d b"></span></div></div>
+                <div class="box"><div class="lbl">S</div><div class="dots" id="hStrikes"><span class="d s"></span><span class="d s"></span></div></div>
+                <div class="box"><div class="lbl">O</div><div class="dots" id="hOuts"><span class="d o"></span><span class="d o"></span><span class="d o"></span></div></div>
+                <div class="box"><div class="lbl">塁</div><div id="bases"><i class="b1"></i><i class="b2"></i><i class="b3"></i></div></div>
+            </div>
+            <div id="msg"></div>
+            <button id="fsBtn" title="全画面表示">⛶</button>
+            <div id="start">
+                <h1>⚾ ナイター・ホームランバトル</h1>
+                <div class="sub">
+                    捕手後方カメラの本格バッティング。<br>
+                    <b>マウス / 指ドラッグ</b> でミートカーソルを動かし、迫ってくる球に合わせて<br>
+                    <b>クリック / タップ / スペース</b> でスイング!<br>
+                    打球は奥へ飛び、<b>野手が追って捕球</b>。抜けばヒット、フェンス越えでホームラン。<br>
+                    カーソルの<b>下</b>で捉えるとフライ、<b>上</b>を叩くとゴロになる。
+                </div>
+                <button class="btn" id="btnStart">PLAY BALL</button>
+            </div>
+            <div id="over">
+                <div class="final"><small>FINAL</small><span id="finalScore">0</span><small style="letter-spacing:.1em;margin-top:4px;">得点</small></div>
+                <div class="sub" id="finalDetail"></div>
+                <button class="btn" id="btnRetry">もう一度</button>
+            </div>
+        </div>
+        <script src="js/script.js"></script>
     </body>
 </html>
