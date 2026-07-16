@@ -6,21 +6,23 @@ const $=id=>document.getElementById(id);
 const msgEl=$('msg');
 
 // ---------- Audio ----------
-let AC=null;
+let AC=null,VOL=1; // マスター音量 1 → .5 → 0(ミュート)
 function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();return AC;}
 function beep(f,dur,type='square',vol=.15,slide=0){
+  if(VOL<=0)return;
   try{const a=ac(),o=a.createOscillator(),g=a.createGain();
   o.type=type;o.frequency.setValueAtTime(f,a.currentTime);
   if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),a.currentTime+dur);
-  g.gain.setValueAtTime(vol,a.currentTime);
+  g.gain.setValueAtTime(vol*VOL,a.currentTime);
   g.gain.exponentialRampToValueAtTime(.001,a.currentTime+dur);
   o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+dur);}catch(e){}
 }
 function crack(strong){beep(180,.08,'square',strong?.34:.24,-120);beep(900,.05,'triangle',.2,-500);}
-function crowd(){try{const a=ac(),len=a.sampleRate*1.4,buf=a.createBuffer(1,len,a.sampleRate),d=buf.getChannelData(0);
+function crowd(){if(VOL<=0)return;
+  try{const a=ac(),len=a.sampleRate*1.4,buf=a.createBuffer(1,len,a.sampleRate),d=buf.getChannelData(0);
   for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len)*.5;
   const s=a.createBufferSource(),g=a.createGain(),f=a.createBiquadFilter();
-  f.type='bandpass';f.frequency.value=900;f.Q.value=.6;g.gain.value=.35;
+  f.type='bandpass';f.frequency.value=900;f.Q.value=.6;g.gain.value=.35*VOL;
   s.buffer=buf;s.connect(f).connect(g).connect(a.destination);s.start();}catch(e){}}
 
 // ============================================================
@@ -886,4 +888,13 @@ fsBtn.addEventListener('click',async()=>{
 });
 document.addEventListener('fullscreenchange',fit);
 addEventListener('resize',fit);fit();
+
+// ---------- 音量ボタン: 🔊100% → 🔉50% → 🔇ミュート ----------
+const volBtn=$('volBtn');
+volBtn.addEventListener('click',()=>{
+  VOL=VOL===1?0.5:VOL===0.5?0:1;
+  volBtn.textContent=VOL===1?'🔊':VOL===0.5?'🔉':'🔇';
+  volBtn.title=VOL===1?'音量: 大':VOL===0.5?'音量: 小':'ミュート';
+  if(VOL>0){ac();beep(600,.08,'sine',.15);} // 確認音
+});
 })();
