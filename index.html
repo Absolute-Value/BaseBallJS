@@ -8,15 +8,6 @@
     <body>
         <div id="wrap">
             <canvas id="cv" width="800" height="600"></canvas>
-            <div id="hud">
-                <div class="box"><div class="lbl">得点</div><div class="val" id="hScore">0</div></div>
-                <div class="box"><div class="lbl">HR</div><div class="val" id="hHR" style="color:var(--red)">0</div></div>
-                <div class="box"><div class="lbl">安打</div><div class="val" id="hHits" style="color:var(--blue)">0</div></div>
-                <div class="box"><div class="lbl">B</div><div class="dots" id="hBalls"><span class="d b"></span><span class="d b"></span><span class="d b"></span></div></div>
-                <div class="box"><div class="lbl">S</div><div class="dots" id="hStrikes"><span class="d s"></span><span class="d s"></span></div></div>
-                <div class="box"><div class="lbl">O</div><div class="dots" id="hOuts"><span class="d o"></span><span class="d o"></span><span class="d o"></span></div></div>
-                <div class="box"><div class="lbl">塁</div><div id="bases"><i class="b1"></i><i class="b2"></i><i class="b3"></i></div></div>
-            </div>
             <div id="msg"></div>
             <button id="volBtn" title="音量">🔊</button>
             <button id="fsBtn" title="全画面表示">⛶</button>
@@ -27,12 +18,14 @@
                     <b>マウス / 指ドラッグ</b> でミートカーソルを動かし、迫ってくる球に合わせて<br>
                     <b>クリック / タップ / スペース</b> でスイング!<br>
                     打球は奥へ飛び、<b>野手が追って捕球</b>。抜けばヒット、フェンス越えでホームラン。<br>
-                    カーソルの<b>下</b>で捉えるとフライ、<b>上</b>を叩くとゴロになる。
+                    カーソルの<b>下</b>で捉えるとフライ、<b>上</b>を叩くとゴロになる。<br>
+                    <b>5イニング制</b>: 表はあいての攻撃(0〜4点)、裏はあなたの攻撃。勝利を目指せ!
                 </div>
                 <button class="btn" id="btnStart">PLAY BALL</button>
             </div>
             <div id="over">
-                <div class="final"><small>FINAL</small><span id="finalScore">0</span><small style="letter-spacing:.1em;margin-top:4px;">得点</small></div>
+                <h1 id="finalResult"></h1>
+                <div class="final"><small>FINAL</small><span id="finalScore">0</span></div>
                 <div class="sub" id="finalDetail"></div>
                 <button class="btn" id="btnRetry">もう一度</button>
             </div>
